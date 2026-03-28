@@ -6,10 +6,14 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ResumePage from "./pages/ResumePage";
-import AIInterview from "./pages/AIInterview";
 import PlacementPrediction from "./pages/PlacementPrediction";
 import LearningRoadmap from "./pages/LearningRoadmap";
 import Profile from "./pages/Profile";
+
+// ✅ AI Interview Flow
+import AIInterview from "./pages/AIInterview";
+import AIInterviewLive from "./pages/AIInterviewLive";
+import InterviewResult from "./pages/InterviewResult";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -19,10 +23,12 @@ function App() {
       <Navbar />
 
       <Routes>
+        {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* ================= PROTECTED ROUTES ================= */}
         <Route
           path="/dashboard"
           element={
@@ -41,6 +47,7 @@ function App() {
           }
         />
 
+        {/* ================= AI INTERVIEW FLOW ================= */}
         <Route
           path="/interview"
           element={
@@ -50,6 +57,25 @@ function App() {
           }
         />
 
+        <Route
+          path="/ai-interview/live"
+          element={
+            <ProtectedRoute>
+              <AIInterviewLive />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/interview-result"
+          element={
+            <ProtectedRoute>
+              <InterviewResult />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================= OTHER FEATURES ================= */}
         <Route
           path="/placement"
           element={
@@ -77,6 +103,7 @@ function App() {
           }
         />
 
+        {/* ================= FALLBACK ================= */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

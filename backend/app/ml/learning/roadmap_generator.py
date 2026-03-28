@@ -1,15 +1,16 @@
-def generate_roadmap(missing_skills):
-
+def generate_learning_roadmap(skills: list, weaknesses: list):
     roadmap = []
 
-    for skill in missing_skills:
+    for weakness in weaknesses:
         roadmap.append({
-            "skill": skill,
-            "steps": [
-                f"Learn basics of {skill}",
-                f"Practice projects in {skill}",
-                f"Master advanced concepts of {skill}"
-            ]
+            "title": weakness,
+            "action": f"Improve by practicing concepts and interview questions related to {weakness.lower()}."
+        })
+
+    for skill in skills[:3]:
+        roadmap.append({
+            "title": f"Advance {skill}",
+            "action": f"Build projects and solve interview problems using {skill}."
         })
 
     return roadmap

@@ -1,8 +1,28 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
+import shutil
+import os
 
-router = APIRouter()
+from backend.app.proctoring.face_monitor import analyze_frame
+from backend.app.proctoring.behavior_rules import cheating_risk
 
-@router.post("/proctoring/analyze-events")
+router = APIRouter(prefix="/proctoring", tags=["Proctoring"])
+
+
+@router.post("/analyze-frame")
+async def analyze_frame_route(file: UploadFile = File(...)):
+    temp_path = f"temp_{file.filename}"
+
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    result = analyze_frame(temp_path)
+
+    if os.path.exists(temp_path):
+        os.remove(temp_path)
+
+    return result
+
+
+@router.post("/analyze-events")
 async def analyze_events(data: dict):
-    from backend.app.proctoring.behavior_rules import cheating_risk
     return cheating_risk(data)
