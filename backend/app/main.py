@@ -27,6 +27,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # ✅ ONLY KEEP PROCTOR ROUTER
 from backend.app.proctoring.proctor_routes import router as proctor_router
 
+from backend.app.assistant.assistant_routes import router as assistant_router
+
 app = FastAPI()
 
 # ================= CORS =================
@@ -41,6 +43,7 @@ app.add_middleware(
 # ================= ROUTERS =================
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(proctor_router)  # ✅ KEEP THIS
+app.include_router(assistant_router, tags=["Assistant"])
 
 # ================= RESUME ANALYSIS =================
 @app.post("/analyze-resume")

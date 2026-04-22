@@ -1,24 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import axios from "axios";
 
 function CameraMonitor({ onViolation }) {
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const intervalRef = useRef(null);
-
-  const [cameraError, setCameraError] = useState("");
-  const [cameraReady, setCameraReady] = useState(false);
+  const violationTriggeredRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
 
     const startCamera = async () => {
       try {
-        // 🔍 List available devices (debug purpose)
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter((d) => d.kind === "videoinput");
-        console.log("Available Cameras:", videoDevices);
-
-        // 🎥 Force laptop/front camera
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "user",
@@ -34,54 +28,20 @@ function CameraMonitor({ onViolation }) {
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play();
-            setCameraReady(true);
-          };
+          await videoRef.current.play();
         }
 
-        // 📡 Send frames every 3 seconds to backend OpenCV
-        intervalRef.current = setInterval(async () => {
-          if (!videoRef.current || !cameraReady) return;
-
-          const canvas = document.createElement("canvas");
-          canvas.width = videoRef.current.videoWidth || 640;
-          canvas.height = videoRef.current.videoHeight || 480;
-
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-
-          canvas.toBlob(async (blob) => {
-            if (!blob) return;
-
-            const formData = new FormData();
-            formData.append("file", blob, "frame.jpg");
-
-            try {
-              const response = await fetch(
-                "http://127.0.0.1:8001/proctoring/analyze-events",
-                {
-                  method: "POST",
-                  body: formData,
-                }
-              );
-
-              const data = await response.json();
-              console.log("Proctoring Result:", data);
-
-              if (data.violation) {
-                alert("Interview stopped: " + data.reason);
-                onViolation?.(data.reason);
-              }
-            } catch (err) {
-              console.error("Backend proctoring error:", err);
-            }
-          }, "image/jpeg");
-        }, 3000);
+        intervalRef.current = setInterval(() => {
+          if (!violationTriggeredRef.current) {
+            captureAndSendFrame();
+          }
+        }, 2000);
       } catch (err) {
-        console.error("Camera error:", err);
-        setCameraError("Camera access denied or not available.");
-        onViolation?.("Camera denied");
+        console.error("Camera access denied:", err);
+        if (!violationTriggeredRef.current && onViolation) {
+          violationTriggeredRef.current = true;
+          onViolation("Camera access denied");
+        }
       }
     };
 
@@ -90,32 +50,74 @@ function CameraMonitor({ onViolation }) {
     return () => {
       isMounted = false;
 
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
 
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [cameraReady, onViolation]);
+  }, []);
+
+  const captureAndSendFrame = async () => {
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+
+      if (!video || !canvas) return;
+      if (video.readyState !== 4) return;
+
+      const ctx = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.8)
+      );
+
+      if (!blob) return;
+
+      const formData = new FormData();
+      formData.append("file", blob, "frame.jpg");
+
+      const res = await axios.post(
+        "http://127.0.0.1:8001/proctoring/analyze-frame",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      console.log("🚨 Proctor Response:", res.data);
+
+      if (res.data?.violation === true && !violationTriggeredRef.current) {
+        violationTriggeredRef.current = true;
+
+        // Stop camera immediately
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+        }
+
+        if (onViolation) {
+          onViolation(res.data.reason || "Suspicious activity detected");
+        }
+      }
+    } catch (err) {
+      console.error("Frame analysis error:", err);
+    }
+  };
 
   return (
-    <div className="camera-monitor-wrapper">
-      {cameraError ? (
-        <div className="camera-error">
-          <p>❌ {cameraError}</p>
-          <p>Please allow laptop webcam access in your browser.</p>
-        </div>
-      ) : (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="camera-preview"
-        />
-      )}
+    <div className="camera-monitor">
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="camera-video"
+      />
+      <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
   );
 }

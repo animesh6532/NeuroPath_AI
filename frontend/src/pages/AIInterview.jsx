@@ -1,59 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { interviewAPI } from "../api/endpoints";
-import CameraMonitor from "../components/CameraMonitor";
 import "./AIInterview.css";
 
 function AIInterview() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [interviewStarted, setInterviewStarted] = useState(false);
-  const [warning, setWarning] = useState("");
   const navigate = useNavigate();
-
-  // 🔒 Fullscreen + Tab Switch Detection when interview starts
-  useEffect(() => {
-    if (!interviewStarted) return;
-
-    const enterFullscreen = async () => {
-      try {
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
-        }
-      } catch (err) {
-        console.warn("Fullscreen request failed:", err);
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        alert("Interview terminated: Tab switching is not allowed.");
-        navigate("/dashboard");
-      }
-    };
-
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        alert("Interview terminated: Fullscreen mode exited.");
-        navigate("/dashboard");
-      }
-    };
-
-    enterFullscreen();
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, [interviewStarted, navigate]);
-
-  const handleViolation = (reason) => {
-    alert("Interview terminated: " + reason);
-    navigate("/dashboard");
-  };
 
   const handleStart = async () => {
     if (!file) {
@@ -64,8 +18,6 @@ function AIInterview() {
     try {
       setLoading(true);
       setError("");
-      setWarning("");
-      setInterviewStarted(true);
 
       const response = await interviewAPI.start(file);
 
@@ -79,7 +31,6 @@ function AIInterview() {
     } catch (err) {
       console.error(err);
       setError("Failed to start AI interview.");
-      setInterviewStarted(false);
     } finally {
       setLoading(false);
     }
@@ -90,23 +41,23 @@ function AIInterview() {
       <div className="interview-card">
         <h1>AI Mock Interview</h1>
         <p className="subtitle">
-          Upload your resume and start a strict AI-powered voice interview.
+          Upload your resume and start an AI-powered voice interview experience.
         </p>
 
         <div className="feature-grid">
           <div className="feature-box">
             <h3>🎤 Voice Interview</h3>
-            <p>AI asks technical questions and listens to your spoken answers.</p>
+            <p>AI asks technical questions using voice prompts.</p>
           </div>
 
           <div className="feature-box">
-            <h3>📷 Webcam Proctoring</h3>
-            <p>Face presence and movement will be monitored during interview.</p>
+            <h3>📷 Camera Monitoring</h3>
+            <p>Camera will open only after interview starts.</p>
           </div>
 
           <div className="feature-box">
-            <h3>🚫 Anti-Cheating</h3>
-            <p>Tab switching, leaving fullscreen, or suspicious movement will stop the interview.</p>
+            <h3>🧠 AI Evaluation</h3>
+            <p>Get feedback on confidence, relevance, and communication.</p>
           </div>
         </div>
 
@@ -119,20 +70,10 @@ function AIInterview() {
 
           {file && <p className="selected-file">📄 {file.name}</p>}
           {error && <p className="error-text">{error}</p>}
-          {warning && <p className="warning-text">{warning}</p>}
 
           <button onClick={handleStart} disabled={loading}>
-            {loading ? "Preparing Interview..." : "Start Interview"}
+            {loading ? "Generating Questions..." : "Start Interview"}
           </button>
-        </div>
-
-        {/* 📷 Camera Preview */}
-        <div className="camera-preview-section">
-          <h3>Camera Check</h3>
-          <p className="camera-note">
-            Please allow camera access before starting your interview.
-          </p>
-          <CameraMonitor onViolation={handleViolation} />
         </div>
       </div>
     </div>

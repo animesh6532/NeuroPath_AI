@@ -1,0 +1,78 @@
+/* Premium SaaS Card Styles - Glassmorphism + Hover Lift */
+:root {
+  --card-bg: 255 255 255;
+  --card-border: 0 0% 0% / 0 0 2px 2px;
+  --card-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.1);
+  --card-glow: 0 0 0 3px rgb(59 130 246 / 0.5);
+  --text-primary: 17 24 39;
+  --text-secondary: 107 114 128;
+}
+
+.dark {
+  --card-bg: 15 23 42;
+  --card-border: 255 255 255 / 0.1;
+  --card-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+  --card-glow: 0 0 0 3px rgb(99 102 241 / 0.4);
+  --text-primary: 255 255 255;
+  --text-secondary: 148 163 184;
+}
+
+.card {
+  background: rgb(var(--card-bg) / 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgb(var(--card-bg) / 0.2);
+  border-radius: 24px;
+  color: rgb(var(--text-primary));
+  box-shadow: var(--card-shadow);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgb(var(--card-bg) / 0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 0;
+}
+
+.card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 35px 70px -12px rgb(0 0 0 / 0.15),
+    var(--card-glow);
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.card.glass {
+  background: rgb(var(--card-bg) / 0.15);
+  border: 1px solid rgb(var(--card-bg) / 0.2);
+  backdrop-filter: blur(40px);
+}
+
+.shadow-glow {
+  box-shadow: 
+    0 25px 50px -12px rgb(0 0 0 / 0.15),
+    0 0 0 1px rgb(var(--card-bg) / 0.2),
+    var(--card-glow);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: var(--card-shadow); }
+  50% { box-shadow: var(--card-shadow), var(--card-glow); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Size variants */
+.card.p-6 { padding: 1.5rem; }
+.card.p-8 { padding: 2rem; }
+.card.p-12 { padding: 3rem; }

@@ -16,6 +16,7 @@ import AIInterviewLive from "./pages/AIInterviewLive";
 import InterviewResult from "./pages/InterviewResult";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import FloatingAssistant from "./components/FloatingAssistant";
 
 function App() {
   return (
@@ -106,6 +107,7 @@ function App() {
         {/* ================= FALLBACK ================= */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <FloatingAssistant />
     </>
   );
 }

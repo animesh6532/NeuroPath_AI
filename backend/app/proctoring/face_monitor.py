@@ -1,51 +1,66 @@
 import cv2
 import numpy as np
 
-face_cascade = cv2.CascadeClassifier(
-    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-)
+cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+face_cascade = cv2.CascadeClassifier(cascade_path)
 
-previous_face_center = None
 
-def analyze_frame_bytes(image_bytes):
-    global previous_face_center
-
-    np_arr = np.frombuffer(image_bytes, np.uint8)
+def analyze_frame(frame_bytes: bytes):
+    np_arr = np.frombuffer(frame_bytes, np.uint8)
     frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
     if frame is None:
-        return {"status": "error", "message": "Invalid frame"}
+        return {
+            "violation": True,
+            "reason": "Invalid frame received"
+        }
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+    gray = cv2.equalizeHist(gray)
 
-    result = {
-        "status": "ok",
-        "faces_detected": len(faces),
-        "violation": False,
-        "reason": None
-    }
+    faces = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.05,
+        minNeighbors=3,
+        minSize=(50, 50)
+    )
 
+    # ❌ No face
     if len(faces) == 0:
-        result["violation"] = True
-        result["reason"] = "No face detected"
-        return result
+        return {
+            "violation": True,
+            "reason": "No face detected"
+        }
 
+    # ❌ Multiple persons
     if len(faces) > 1:
-        result["violation"] = True
-        result["reason"] = "Multiple faces detected"
-        return result
+        return {
+            "violation": True,
+            "reason": "Multiple persons detected"
+        }
 
-    # Single face movement tracking
+    # ❌ Face too small / too far / partially visible
     (x, y, w, h) = faces[0]
-    current_center = (x + w // 2, y + h // 2)
+    face_area = w * h
+    frame_area = frame.shape[0] * frame.shape[1]
 
-    if previous_face_center is not None:
-        movement = abs(current_center[0] - previous_face_center[0]) + abs(current_center[1] - previous_face_center[1])
+    if face_area < frame_area * 0.03:
+        return {
+            "violation": True,
+            "reason": "Face too far or not properly visible"
+        }
 
-        if movement > 80:
-            result["violation"] = True
-            result["reason"] = "Excessive movement detected"
+    # ❌ Face moved too much left/right
+    face_center_x = x + w // 2
+    frame_center_x = frame.shape[1] // 2
 
-    previous_face_center = current_center
-    return result
+    if abs(face_center_x - frame_center_x) > frame.shape[1] * 0.30:
+        return {
+            "violation": True,
+            "reason": "Face moved out of frame"
+        }
+
+    return {
+        "violation": False,
+        "reason": "Face detected properly"
+    }

@@ -7,6 +7,8 @@ import "./AIInterview.css";
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
+const QUESTION_TIME = 60; // 1 minute per question
+
 function AIInterviewLive() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,13 +22,16 @@ function AIInterviewLive() {
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState("Initializing interview...");
+  const [status, setStatus] = useState("Preparing interview...");
   const [violations, setViolations] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(QUESTION_TIME);
 
   const recognitionRef = useRef(null);
-  const hasStartedQuestionRef = useRef(false);
+  const timerRef = useRef(null);
 
-  // 🚫 If opened directly without state
+  // =========================
+  // Redirect if no questions
+  // =========================
   useEffect(() => {
     if (!questions.length) {
       alert("No interview session found. Please start again.");
@@ -34,7 +39,9 @@ function AIInterviewLive() {
     }
   }, [questions, navigate]);
 
-  // 🔒 Strict mode: fullscreen + tab switch block
+  // =========================
+  // Strict Interview Mode
+  // =========================
   useEffect(() => {
     const enterFullscreen = async () => {
       try {
@@ -59,6 +66,7 @@ function AIInterviewLive() {
     };
 
     enterFullscreen();
+
     document.addEventListener("visibilitychange", handleVisibility);
     document.addEventListener("fullscreenchange", handleFullscreen);
 
@@ -66,23 +74,46 @@ function AIInterviewLive() {
       document.removeEventListener("visibilitychange", handleVisibility);
       document.removeEventListener("fullscreenchange", handleFullscreen);
       speechSynthesis.cancel();
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      stopListening();
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
-  // 🎤 Speak current question automatically
+  // =========================
+  // Start each question
+  // =========================
   useEffect(() => {
     if (!questions.length) return;
-    if (hasStartedQuestionRef.current && currentAnswer) return;
 
-    speakQuestion(questions[currentIndex]);
-    setStatus(`Question ${currentIndex + 1} of ${questions.length}`);
     setCurrentAnswer("");
-    hasStartedQuestionRef.current = true;
+    setTimeLeft(QUESTION_TIME);
+    setStatus(`Question ${currentIndex + 1} of ${questions.length}`);
+
+    // Speak the current question
+    speakQuestion(questions[currentIndex]);
+
+    // Start 1-minute timer
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          autoNext(); // ✅ Auto move
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [currentIndex, questions]);
 
+  // =========================
+  // AI Voice Question
+  // =========================
   const speakQuestion = (text) => {
     speechSynthesis.cancel();
 
@@ -91,22 +122,27 @@ function AIInterviewLive() {
     utter.rate = 1;
     utter.pitch = 1;
 
+    utter.onstart = () => {
+      setStatus("AI is asking the question...");
+    };
+
     utter.onend = () => {
-      startListening();
+      startListening(); // start mic after AI finishes speaking
     };
 
     speechSynthesis.speak(utter);
   };
 
+  // =========================
+  // Start Speech Recognition
+  // =========================
   const startListening = () => {
     if (!SpeechRecognition) {
-      alert("Your browser does not support voice recognition. Use Google Chrome.");
+      alert("Speech Recognition not supported. Please use Google Chrome.");
       return;
     }
 
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
+    stopListening();
 
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
@@ -140,14 +176,24 @@ function AIInterviewLive() {
     recognition.start();
   };
 
+  // =========================
+  // Stop Speech Recognition
+  // =========================
   const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
+    try {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    } catch (err) {
+      console.warn("Stop listening issue:", err);
     }
     setIsListening(false);
   };
 
-  const saveAndNext = () => {
+  // =========================
+  // Auto Next Question
+  // =========================
+  const autoNext = () => {
     stopListening();
 
     const updatedAnswers = [
@@ -162,12 +208,14 @@ function AIInterviewLive() {
 
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
-      hasStartedQuestionRef.current = false;
     } else {
       submitInterview(updatedAnswers);
     }
   };
 
+  // =========================
+  // Submit Interview
+  // =========================
   const submitInterview = async (finalAnswers) => {
     try {
       setIsSubmitting(true);
@@ -191,16 +239,20 @@ function AIInterviewLive() {
         },
       });
     } catch (err) {
-      console.error(err);
-      alert("Failed to submit interview.");
+      console.error("Interview submission error:", err);
+      alert("Failed to submit interview. Check backend /submit-interview.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // =========================
+  // Terminate Interview
+  // =========================
   const terminateInterview = (reason) => {
     speechSynthesis.cancel();
     stopListening();
+    if (timerRef.current) clearInterval(timerRef.current);
 
     const updatedViolations = [...violations, reason];
     setViolations(updatedViolations);
@@ -209,12 +261,16 @@ function AIInterviewLive() {
     navigate("/dashboard");
   };
 
+  // =========================
+  // Camera Violation Handler
+  // =========================
   const handleViolation = (reason) => {
     terminateInterview(reason);
   };
 
   return (
     <div className="live-interview-page">
+      {/* LEFT SIDE */}
       <div className="live-left">
         <h1>Live AI Interview</h1>
         <p className="subtitle">{status}</p>
@@ -224,8 +280,13 @@ function AIInterviewLive() {
           <p>{questions[currentIndex]}</p>
         </div>
 
+        <div className="result-box" style={{ marginBottom: "20px" }}>
+          <h3>⏱ Time Left</h3>
+          <p style={{ fontSize: "28px", fontWeight: "700" }}>{timeLeft}s</p>
+        </div>
+
         <div className="feature-box">
-          <h3>🎙️ Your Spoken Answer</h3>
+          <h3>🎙 Your Spoken Answer</h3>
           <p style={{ whiteSpace: "pre-wrap", minHeight: "100px" }}>
             {currentAnswer || "Your answer will appear here while you speak..."}
           </p>
@@ -240,15 +301,18 @@ function AIInterviewLive() {
             ⏹ Stop
           </button>
 
-          <button onClick={saveAndNext} disabled={isSubmitting}>
-            {currentIndex === questions.length - 1 ? "Submit Interview" : "Next Question"}
+          <button onClick={autoNext} disabled={isSubmitting}>
+            {currentIndex === questions.length - 1 ? "Submit Now" : "Next Now"}
           </button>
         </div>
       </div>
 
+      {/* RIGHT SIDE */}
       <div className="live-right">
         <h3>📷 Live Proctoring</h3>
-        <p className="subtitle">Stay visible and focused. Suspicious activity ends the interview.</p>
+        <p className="subtitle">
+          Stay visible and focused. Suspicious activity ends the interview.
+        </p>
 
         <div className="camera-box">
           <CameraMonitor onViolation={handleViolation} />
@@ -262,6 +326,7 @@ function AIInterviewLive() {
             <li>No multiple persons in frame</li>
             <li>No excessive movement</li>
             <li>Answer only by voice</li>
+            <li>1 minute per question</li>
           </ul>
         </div>
       </div>
