@@ -9,6 +9,8 @@ import ResumePage from "./pages/ResumePage";
 import PlacementPrediction from "./pages/PlacementPrediction";
 import LearningRoadmap from "./pages/LearningRoadmap";
 import Profile from "./pages/Profile";
+import DailyCoding from "./pages/DailyCoding";
+import AptitudeTest from "./pages/AptitudeTest";
 
 // ✅ AI Interview Flow
 import AIInterview from "./pages/AIInterview";
@@ -91,6 +93,24 @@ function App() {
           element={
             <ProtectedRoute>
               <LearningRoadmap />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/daily-coding"
+          element={
+            <ProtectedRoute>
+              <DailyCoding />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/aptitude-test"
+          element={
+            <ProtectedRoute>
+              <AptitudeTest />
             </ProtectedRoute>
           }
         />

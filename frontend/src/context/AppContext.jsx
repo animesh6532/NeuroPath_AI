@@ -4,27 +4,32 @@ export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [analysisData, setAnalysisData] = useState(() => {
-    const saved = localStorage.getItem("analysisData");
+    const saved = localStorage.getItem("analysis_data");
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [dashboardData, setDashboardData] = useState(() => {
-    const saved = localStorage.getItem("dashboardData");
-    return saved ? JSON.parse(saved) : null;
+  const [resumeHistory, setResumeHistory] = useState(() => {
+    const saved = localStorage.getItem("resume_history");
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [interviewData, setInterviewData] = useState(() => {
-    const saved = localStorage.getItem("interviewData");
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  const [placementData, setPlacementData] = useState(() => {
-    const saved = localStorage.getItem("placementData");
+    const saved = localStorage.getItem("interview_data");
     return saved ? JSON.parse(saved) : null;
   });
 
   const [roadmapData, setRoadmapData] = useState(() => {
-    const saved = localStorage.getItem("roadmapData");
+    const saved = localStorage.getItem("roadmap");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [codingProgress, setCodingProgress] = useState(() => {
+    const saved = localStorage.getItem("coding_progress");
+    return saved ? JSON.parse(saved) : { streak: 0, completedToday: false, lastActive: null, solvedCount: 0 };
+  });
+
+  const [aptitudeResult, setAptitudeResult] = useState(() => {
+    const saved = localStorage.getItem("aptitude_result");
     return saved ? JSON.parse(saved) : null;
   });
 
@@ -33,24 +38,33 @@ export const AppProvider = ({ children }) => {
   );
 
   useEffect(() => {
-    localStorage.setItem("analysisData", JSON.stringify(analysisData));
+    if (analysisData) localStorage.setItem("analysis_data", JSON.stringify(analysisData));
+    else localStorage.removeItem("analysis_data");
   }, [analysisData]);
 
   useEffect(() => {
-    localStorage.setItem("dashboardData", JSON.stringify(dashboardData));
-  }, [dashboardData]);
+    localStorage.setItem("resume_history", JSON.stringify(resumeHistory));
+  }, [resumeHistory]);
 
   useEffect(() => {
-    localStorage.setItem("interviewData", JSON.stringify(interviewData));
+    if (interviewData) localStorage.setItem("interview_data", JSON.stringify(interviewData));
+    else localStorage.removeItem("interview_data");
   }, [interviewData]);
 
   useEffect(() => {
-    localStorage.setItem("placementData", JSON.stringify(placementData));
-  }, [placementData]);
+    if (roadmapData) localStorage.setItem("roadmap", JSON.stringify(roadmapData));
+    else localStorage.removeItem("roadmap");
+  }, [roadmapData]);
 
   useEffect(() => {
-    localStorage.setItem("roadmapData", JSON.stringify(roadmapData));
-  }, [roadmapData]);
+    if (codingProgress) localStorage.setItem("coding_progress", JSON.stringify(codingProgress));
+    else localStorage.removeItem("coding_progress");
+  }, [codingProgress]);
+
+  useEffect(() => {
+    if (aptitudeResult) localStorage.setItem("aptitude_result", JSON.stringify(aptitudeResult));
+    else localStorage.removeItem("aptitude_result");
+  }, [aptitudeResult]);
 
   useEffect(() => {
     if (recentUpload) {
@@ -60,17 +74,19 @@ export const AppProvider = ({ children }) => {
 
   const clearAllAppData = () => {
     setAnalysisData(null);
-    setDashboardData(null);
+    setResumeHistory([]);
     setInterviewData(null);
-    setPlacementData(null);
     setRoadmapData(null);
+    setCodingProgress({ streak: 0, completedToday: false, lastActive: null, solvedCount: 0 });
+    setAptitudeResult(null);
     setRecentUpload(null);
 
-    localStorage.removeItem("analysisData");
-    localStorage.removeItem("dashboardData");
-    localStorage.removeItem("interviewData");
-    localStorage.removeItem("placementData");
-    localStorage.removeItem("roadmapData");
+    localStorage.removeItem("analysis_data");
+    localStorage.removeItem("resume_history");
+    localStorage.removeItem("interview_data");
+    localStorage.removeItem("roadmap");
+    localStorage.removeItem("coding_progress");
+    localStorage.removeItem("aptitude_result");
     localStorage.removeItem("recentUpload");
   };
 
@@ -79,14 +95,16 @@ export const AppProvider = ({ children }) => {
       value={{
         analysisData,
         setAnalysisData,
-        dashboardData,
-        setDashboardData,
+        resumeHistory,
+        setResumeHistory,
         interviewData,
         setInterviewData,
-        placementData,
-        setPlacementData,
         roadmapData,
         setRoadmapData,
+        codingProgress,
+        setCodingProgress,
+        aptitudeResult,
+        setAptitudeResult,
         recentUpload,
         setRecentUpload,
         clearAllAppData,

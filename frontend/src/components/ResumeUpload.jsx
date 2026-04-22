@@ -12,7 +12,7 @@ const ResumeUpload = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  const { setAnalysisData, setRecentUpload } = useContext(AppContext);
+  const { setAnalysisData, setRecentUpload, setResumeHistory } = useContext(AppContext);
 
   const handleClick = () => {
     fileInputRef.current?.click();
@@ -52,6 +52,17 @@ const ResumeUpload = () => {
 
       setAnalysisData(response.data);
       setRecentUpload(file.name);
+      
+      setResumeHistory(prev => [
+        {
+          id: Date.now(),
+          date: new Date().toLocaleDateString(),
+          score: response.data.resume_score,
+          career: response.data.top_career
+        },
+        ...prev
+      ]);
+
       setSuccess("Resume analyzed successfully!");
 
       setTimeout(() => {

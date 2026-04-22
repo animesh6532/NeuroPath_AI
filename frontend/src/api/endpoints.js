@@ -24,25 +24,29 @@ export const resumeAPI = {
 
 // ================= INTERVIEW API =================
 export const interviewAPI = {
-  start: (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    return API.post("/start-ai-interview", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  },
+  generate: (payload) => API.post("/generate-interview", payload),
 
   submit: (payload) => API.post("/submit-interview", payload),
 
   placement: (payload) => API.post("/placement-analysis", payload),
 
-  roadmap: (payload) => API.post("/learning-roadmap", payload),
+  roadmap: (payload) => API.post("/generate-roadmap", payload),
 
   analyzeFrame: (payload) =>
     API.post("/proctoring/analyze-events", payload, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+};
+
+// ================= DAILY CHALLENGE API =================
+export const dailyAPI = {
+  getChallenges: () => API.get("/daily-challenge"),
+};
+
+// ================= APTITUDE API =================
+export const aptitudeAPI = {
+  getTest: () => API.get("/aptitude-test"),
+  submitTest: (payload) => API.post("/submit-aptitude", payload),
 };
 
 // ================= DASHBOARD API =================

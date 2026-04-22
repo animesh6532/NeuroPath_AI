@@ -85,3 +85,62 @@
   color: #9fb0d4;
   margin-top: 10px;
 }
+
+.double-col {
+  display: flex;
+  gap: 30px;
+}
+
+.dash-col {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 24px;
+}
+
+.history-table-wrapper {
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.history-table th {
+  text-align: left;
+  padding: 12px;
+  color: #9fb0d4;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+}
+
+.history-table td {
+  padding: 12px;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.score-badge {
+  background-color: #3b82f6;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.history-note {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  margin-top: 15px;
+}
+
+@media (max-width: 768px) {
+  .double-col {
+    flex-direction: column;
+  }
+}

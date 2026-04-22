@@ -7,7 +7,7 @@ from pdfminer.high_level import extract_text
 from backend.app.ml.resume_scorer import calculate_resume_score
 from backend.app.ml.career_explainer import explain_career
 from backend.app.ml.semantic_matcher import semantic_match
-from backend.app.ml.skill_analyzer import extract_skills
+from backend.app.ml.skill_analyzer import extract_skills, extract_projects, extract_experience
 from backend.app.ml.career_data import CAREER_DATA
 from backend.app.ml.skill_gap import find_skill_gap
 
@@ -16,6 +16,8 @@ from backend.app.ml.interview.interview_engine import evaluate_interview_answers
 
 from backend.app.ml.placement.placement_engine import predict_placement_result
 from backend.app.ml.learning.roadmap_generator import generate_learning_roadmap
+from backend.app.ml.aptitude.aptitude_generator import generate_aptitude_test, evaluate_aptitude_test
+from backend.app.ml.coding.coding_challenges import get_daily_challenges
 
 from backend.app.dashboard.dashboard_service import generate_dashboard
 
@@ -57,6 +59,8 @@ async def analyze_resume(file: UploadFile = File(...)):
     resume_text = extract_text(file_location)
 
     skills = extract_skills(resume_text)
+    projects = extract_projects(resume_text)
+    experience = extract_experience(resume_text)
 
     careers = semantic_match(resume_text)
     top_career = careers[0]["career"]
@@ -79,6 +83,8 @@ async def analyze_resume(file: UploadFile = File(...)):
 
     return {
         "detected_skills": skills,
+        "projects": projects,
+        "experience": experience,
         "recommended_careers": careers,
         "top_career": top_career,
         "missing_skills": missing_skills,
@@ -88,21 +94,11 @@ async def analyze_resume(file: UploadFile = File(...)):
         "domain_scores": domain_scores
     }
 
-# ================= START INTERVIEW =================
-@app.post("/start-ai-interview")
-async def start_ai_interview(file: UploadFile = File(...)):
-
-    file_location = f"temp_{file.filename}"
-
-    with open(file_location, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    resume_text = extract_text(file_location)
-    skills = extract_skills(resume_text)
-
+# ================= GENERATE INTERVIEW =================
+@app.post("/generate-interview")
+async def generate_interview(data: dict):
+    skills = data.get("skills", [])
     questions = generate_questions_from_skills(skills)
-
-    os.remove(file_location)
 
     return {
         "skills": skills,
@@ -120,8 +116,10 @@ async def submit_interview(data: dict):
     weak = results.get("weaknesses", [])
 
     return {
-        "results": results,
-        "weak_areas": weak
+        "score": results.get("score", 0),
+        "confidence": results.get("confidence_score", 0),
+        "weaknesses": weak,
+        "full_results": results
     }
 
 # ================= AI INTERVIEW TEST =================
@@ -153,15 +151,39 @@ async def placement_analysis(data: dict):
     )
 
 # ================= ROADMAP =================
-@app.post("/learning-roadmap")
-async def learning_roadmap(data: dict):
+@app.post("/generate-roadmap")
+async def generate_roadmap(data: dict):
 
+    weaknesses = data.get("weaknesses", [])
     missing_skills = data.get("missing_skills", [])
+    domain = data.get("domain", "")
 
-    roadmap = generate_learning_roadmap([], missing_skills)
+    roadmap = generate_learning_roadmap(weaknesses, missing_skills, domain)
+    return roadmap
+
+# ================= DAILY CHALLENGE =================
+@app.get("/daily-challenge")
+async def daily_challenge():
+    challenges = get_daily_challenges()
     return {
-        "roadmap": roadmap
+        "challenges": challenges
     }
+
+# ================= APTITUDE TEST =================
+@app.get("/aptitude-test")
+async def aptitude_test():
+    questions = generate_aptitude_test(20)
+    # Don't send correct_answer to frontend for security, but since instructions say
+    # "return each question: {question, options[], correct_answer}", I will include it.
+    # In a real system, the frontend shouldn't know the answer, but evaluating on backend is better.
+    # Since POST /submit-aptitude sends answers and expects score, we'll keep the backend eval.
+    return {"questions": questions}
+
+@app.post("/submit-aptitude")
+async def submit_aptitude(data: dict):
+    answers = data.get("answers", [])
+    result = evaluate_aptitude_test(answers)
+    return result
 
 # ================= DASHBOARD =================
 @app.post("/dashboard")

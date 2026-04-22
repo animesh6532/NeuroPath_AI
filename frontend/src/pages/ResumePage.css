@@ -1,2 +1,151 @@
-/* ResumePage styles */
+.resume-page {
+  padding: 40px 20px;
+  min-height: 100vh;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
 
+.resume-upload-section {
+  margin-bottom: 40px;
+}
+
+.resume-details-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.resume-header {
+  margin-bottom: 30px;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 15px;
+}
+
+.resume-header h2 {
+  font-size: 28px;
+  color: #60a5fa;
+  margin-bottom: 5px;
+}
+
+.resume-header p {
+  color: #94a3b8;
+  margin: 0;
+}
+
+.details-grid {
+  display: flex;
+  gap: 30px;
+}
+
+.details-main {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.details-sidebar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.detail-section {
+  background-color: #1e293b;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.detail-section h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 20px;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.skill-tag {
+  background-color: #3b82f6;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.skill-tag.missing {
+  background-color: #ef4444;
+}
+
+.list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.list-card {
+  background-color: #334155;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #60a5fa;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.highlight-box {
+  background: linear-gradient(135deg, #1e293b 0%, #312e81 100%);
+  border: 1px solid #4f46e5;
+}
+
+.highlight-box h2 {
+  font-size: 26px;
+  color: #60a5fa;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.highlight-box p {
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+.mini-career-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mini-career-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #475569;
+  color: #cbd5e1;
+}
+
+.mini-career-list li:last-child {
+  border-bottom: none;
+}
+
+.warning-box {
+  border: 1px solid #7f1d1d;
+  background-color: rgba(69, 10, 10, 0.4);
+}
+
+.empty-state {
+  color: #64748b;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .details-grid {
+    flex-direction: column;
+  }
+}

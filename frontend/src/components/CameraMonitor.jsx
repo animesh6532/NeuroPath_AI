@@ -90,17 +90,9 @@ function CameraMonitor({ onViolation }) {
 
       console.log("🚨 Proctor Response:", res.data);
 
-      if (res.data?.violation === true && !violationTriggeredRef.current) {
-        violationTriggeredRef.current = true;
-
-        // Stop camera immediately
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((track) => track.stop());
-        }
-
+      if (res.data?.warning) {
         if (onViolation) {
-          onViolation(res.data.reason || "Suspicious activity detected");
+          onViolation(res.data.warning);
         }
       }
     } catch (err) {

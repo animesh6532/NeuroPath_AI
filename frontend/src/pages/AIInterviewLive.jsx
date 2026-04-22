@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useContext } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import CameraMonitor from "../components/CameraMonitor";
+import { AppContext } from "../context/AppContext";
 import { interviewAPI } from "../api/endpoints";
 import "./AIInterview.css";
 
@@ -213,6 +214,8 @@ function AIInterviewLive() {
     }
   };
 
+  const { setInterviewData } = useContext(AppContext);
+
   // =========================
   // Submit Interview
   // =========================
@@ -229,6 +232,9 @@ function AIInterviewLive() {
       };
 
       const response = await interviewAPI.submit(payload);
+      
+      // Save to global state so other pages can use it
+      setInterviewData(response.data);
 
       navigate("/interview-result", {
         state: {
@@ -264,8 +270,25 @@ function AIInterviewLive() {
   // =========================
   // Camera Violation Handler
   // =========================
+  const [warningCount, setWarningCount] = useState(0);
+  const [activeWarning, setActiveWarning] = useState("");
+
   const handleViolation = (reason) => {
-    terminateInterview(reason);
+    // Prevent immediate multiple triggers
+    setActiveWarning(reason);
+    
+    setWarningCount((prev) => {
+      const newCount = prev + 1;
+      if (newCount >= 3) {
+        terminateInterview(`Repeated violations: ${reason}`);
+      }
+      return newCount;
+    });
+
+    // Clear active warning from screen after 5 seconds
+    setTimeout(() => {
+      setActiveWarning("");
+    }, 5000);
   };
 
   return (
@@ -274,6 +297,12 @@ function AIInterviewLive() {
       <div className="live-left">
         <h1>Live AI Interview</h1>
         <p className="subtitle">{status}</p>
+
+        {activeWarning && (
+          <div style={{ backgroundColor: '#ef4444', color: 'white', padding: '10px 15px', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', animation: 'pulse 2s infinite' }}>
+            ⚠️ WARNING ({warningCount}/3): {activeWarning}
+          </div>
+        )}
 
         <div className="question-box">
           <h3>Current Question</h3>
@@ -311,7 +340,7 @@ function AIInterviewLive() {
       <div className="live-right">
         <h3>📷 Live Proctoring</h3>
         <p className="subtitle">
-          Stay visible and focused. Suspicious activity ends the interview.
+          Stay visible and focused. 3 warnings will end the interview.
         </p>
 
         <div className="camera-box">

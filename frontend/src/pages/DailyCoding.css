@@ -1,0 +1,152 @@
+.daily-coding-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding: 20px;
+}
+
+.daily-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.daily-header h1 {
+  font-size: 24px;
+  color: #60a5fa;
+  margin: 0;
+}
+
+.exit-btn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.exit-btn:hover {
+  background-color: #dc2626;
+}
+
+.challenges-container {
+  display: flex;
+  flex: 1;
+  gap: 20px;
+}
+
+.challenge-list {
+  flex: 1;
+  background-color: #1e293b;
+  border-radius: 8px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.challenge-card {
+  background-color: #334155;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-left: 4px solid #3b82f6;
+}
+
+.challenge-card h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #f8fafc;
+}
+
+.challenge-meta {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.difficulty-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.difficulty-Easy {
+  background-color: #10b981;
+  color: #ffffff;
+}
+
+.difficulty-Medium {
+  background-color: #f59e0b;
+  color: #ffffff;
+}
+
+.difficulty-Hard {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.topic-badge {
+  font-size: 12px;
+  background-color: #475569;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.coding-area {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e293b;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.editor-header {
+  background-color: #0f172a;
+  padding: 10px 20px;
+  font-weight: bold;
+  border-bottom: 1px solid #334155;
+  display: flex;
+  justify-content: space-between;
+}
+
+.mock-editor {
+  flex: 1;
+  padding: 20px;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border: none;
+  resize: none;
+  outline: none;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.editor-footer {
+  padding: 10px 20px;
+  background-color: #0f172a;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.run-btn {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.run-btn:hover {
+  background-color: #059669;
+}

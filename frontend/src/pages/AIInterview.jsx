@@ -1,17 +1,18 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
 import { interviewAPI } from "../api/endpoints";
 import "./AIInterview.css";
 
 function AIInterview() {
-  const [file, setFile] = useState(null);
+  const { analysisData } = useContext(AppContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleStart = async () => {
-    if (!file) {
-      setError("Please upload your resume PDF first.");
+    if (!analysisData || !analysisData.detected_skills) {
+      setError("No resume data found. Please upload your resume first.");
       return;
     }
 
@@ -19,13 +20,13 @@ function AIInterview() {
       setLoading(true);
       setError("");
 
-      const response = await interviewAPI.start(file);
+      const response = await interviewAPI.generate({ skills: analysisData.detected_skills });
 
       navigate("/ai-interview/live", {
         state: {
           skills: response.data.skills,
           questions: response.data.questions,
-          resumeName: file.name,
+          resumeName: "My Resume",
         },
       });
     } catch (err) {
@@ -41,7 +42,7 @@ function AIInterview() {
       <div className="interview-card">
         <h1>AI Mock Interview</h1>
         <p className="subtitle">
-          Upload your resume and start an AI-powered voice interview experience.
+          Start an AI-powered voice interview experience based on your uploaded resume.
         </p>
 
         <div className="feature-grid">
@@ -61,19 +62,24 @@ function AIInterview() {
           </div>
         </div>
 
-        <div className="upload-section">
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={(e) => setFile(e.target.files[0])}
-          />
-
-          {file && <p className="selected-file">📄 {file.name}</p>}
-          {error && <p className="error-text">{error}</p>}
-
-          <button onClick={handleStart} disabled={loading}>
-            {loading ? "Generating Questions..." : "Start Interview"}
-          </button>
+        <div className="upload-section" style={{ marginTop: '30px' }}>
+          {!analysisData ? (
+            <div className="error-text">
+              <p>You must upload a resume before starting an interview.</p>
+              <button onClick={() => navigate("/")} style={{ marginTop: '15px' }}>Go to Resume Upload</button>
+            </div>
+          ) : (
+            <>
+              <p className="selected-file">
+                <strong>Targeting Skills:</strong> {analysisData.detected_skills.slice(0, 8).join(", ")}
+                {analysisData.detected_skills.length > 8 ? "..." : ""}
+              </p>
+              {error && <p className="error-text">{error}</p>}
+              <button onClick={handleStart} disabled={loading} style={{ marginTop: '20px', padding: '12px 24px', fontSize: '18px' }}>
+                {loading ? "Generating Questions..." : "Start Interview Now"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
