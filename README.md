@@ -1,66 +1,254 @@
 <div align="center">
 
-# 🧠⚡ NeuroPath AI
-### *Next-Generation AI Career Intelligence, Resume Analysis & Voice Interview Platform*
+# 🧠 NeuroPath AI
 
-<img src="https://readme-typing-svg.herokuapp.com?font=Orbitron&size=28&duration=2500&pause=1000&color=00F7FF&center=true&vCenter=true&width=1000&lines=AI-Powered+Career+Intelligence+Platform;Resume+Analysis+%7C+Voice+AI+Interview+%7C+Placement+Prediction;Built+with+React+%2B+FastAPI+%2B+ML+%2B+OpenCV;Futuristic+Full-Stack+Industry-Level+Project" />
+### AI-Powered Career Intelligence & Interview Simulation Platform
 
-<br/>
-
-<img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge&logo=vercel&logoColor=white"/>
-<img src="https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?style=for-the-badge&logo=react&logoColor=black"/>
-<img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white"/>
-<img src="https://img.shields.io/badge/AI%2FML-Resume%20%2B%20Interview%20Engine-FF6B6B?style=for-the-badge&logo=openai&logoColor=white"/>
-<img src="https://img.shields.io/badge/OpenCV-Proctoring%20System-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white"/>
-<img src="https://img.shields.io/badge/Database-MySQL%20%2F%20SQLite-4479A1?style=for-the-badge&logo=mysql&logoColor=white"/>
+> Transforming resume data into actionable career insights using AI
 
 </div>
 
 ---
 
-## 🌌 Project Vision
+## 🚀 Overview
 
-**NeuroPath AI** is a **futuristic AI-powered career intelligence ecosystem** designed to help candidates prepare for the real world of hiring through:
+**NeuroPath AI** is a full-stack AI platform that simulates a real-world hiring pipeline — from resume analysis to interview evaluation and personalized learning.
 
-- 📄 **AI Resume Analysis**
-- 🎤 **Voice-Based AI Mock Interviews**
-- 📷 **Live Webcam + Proctoring Detection**
-- 📊 **Placement Prediction Engine**
-- 🛣️ **Personalized Learning Roadmaps**
-- 🧠 **Career Intelligence & Skill Gap Detection**
+It helps users:
 
-It is not just a resume checker.  
-It is a **full-stack intelligent interview and placement ecosystem** built to simulate a **real industry hiring pipeline**.
+* Understand their career trajectory
+* Identify skill gaps
+* Practice high-level interviews
+* Improve placement readiness with data-driven insights
 
 ---
 
-# ⚡ Core Product Flow
+## 🎯 Key Features
 
-<div align="center">
+### 📄 Resume Intelligence Engine
+
+* Extracts:
+
+  * Skills
+  * Projects
+  * Experience
+* Predicts:
+
+  * Best domain
+  * Top career paths
+* Calculates:
+
+  * Resume score
+  * Skill gaps
+
+---
+
+### 🎤 AI Mock Interview System
+
+* Generates **15 structured questions**:
+
+  * 1 Introduction
+  * 2 Soft skills
+  * 8 Technical (skill-based)
+  * 4 Project/Domain-based
+* No repetition across sessions
+* Difficulty: **core + advanced level**
+
+---
+
+### 📷 Proctoring System (OpenCV)
+
+* Real-time webcam monitoring
+* Detects:
+
+  * Multiple persons
+  * No face
+  * Suspicious activity
+* Ensures interview integrity
+
+---
+
+### 📊 Interview Evaluation Engine
+
+* Scores:
+
+  * Technical ability
+  * Communication
+  * Confidence
+* Outputs:
+
+  * Weakness analysis
+  * Performance report
+
+---
+
+### 🛣️ Learning Roadmap System
+
+#### For Technical Users:
+
+* Personalized roadmap based on:
+
+  * Weaknesses
+  * Missing skills
+* Includes:
+
+  * Topics
+  * Resources
+  * Progress tracking
+
+#### Daily Coding System:
+
+* 2–3 problems daily
+* Fullscreen mode (exit = terminate)
+* Tracks:
+
+  * Streak
+  * Problems solved
+
+---
+
+#### For All Users (Aptitude System):
+
+* 20 questions
+* 30-minute timer
+* Fullscreen strict mode
+* Tracks:
+
+  * Score
+  * Accuracy
+
+---
+
+### 📈 Dashboard System
+
+* Resume Score
+* Interview Score
+* Confidence Level
+* Aptitude Score
+* Coding Streak
+* Learning Progress
+
+---
+
+## 🧠 System Architecture
 
 ```mermaid
 flowchart TD
 
-A[👤 User Enters Platform] --> B[🔐 Authentication System]
-B --> C[📄 Upload Resume]
-C --> D[🧠 AI Resume Parser]
-D --> E[📌 Skill Extraction Engine]
-D --> F[🎯 Career / Domain Detection]
-D --> G[📂 Project & Experience Extraction]
+A[User] --> B[Resume Upload]
+B --> C[AI Parser]
+C --> D[Skill Extraction]
+C --> E[Domain Detection]
 
-E --> H[🎤 AI Interview Generator]
-F --> H
-G --> H
+D --> F[Interview Generator]
+F --> G[AI Interview]
 
-H --> I[🗣️ Voice-Based AI Mock Interview]
-I --> J[📷 Webcam Monitoring + Proctoring]
-J --> K[⚠️ Face / Movement / Multi-Person Detection]
+G --> H[Evaluation Engine]
+H --> I[Scores + Weakness]
 
-I --> L[📝 Answer Evaluation Engine]
-L --> M[📊 Confidence + Technical + Communication Score]
+I --> J[Learning Roadmap]
+I --> K[Dashboard]
+```
 
-M --> N[🎯 Placement Prediction Engine]
-M --> O[🛣️ Personalized Learning Roadmap]
-M --> P[📈 Final Interview Performance Report]
+---
 
-P --> Q[🚀 Career Improvement Dashboard]
+## 🛠️ Tech Stack
+
+### Frontend
+
+* React (Vite)
+* Context API (State Management)
+* Modern CSS (Glassmorphism UI)
+
+### Backend
+
+* FastAPI
+* REST APIs
+* Modular architecture
+
+### AI / ML
+
+* NLP-based resume parsing
+* Skill matching logic
+* Rule-based + ML hybrid evaluation
+
+### Computer Vision
+
+* OpenCV (Face Detection & Proctoring)
+
+### Database
+
+* SQLite / MySQL
+
+---
+
+## ⚡ Unique Highlights
+
+* Real-world hiring pipeline simulation
+* Strict fullscreen interview & test environment
+* Skill-based dynamic interview generation
+* Integrated coding + aptitude system
+* End-to-end data flow (Resume → Interview → Roadmap → Dashboard)
+
+---
+
+## 📂 Project Structure
+
+```
+NeuroPath_AI/
+│
+├── frontend/
+│   ├── src/pages/
+│   ├── src/context/
+│   ├── src/api/
+│
+├── backend/
+│   ├── app/ml/
+│   ├── app/routes/
+│   ├── app/proctoring/
+│
+└── README.md
+```
+
+---
+
+## ▶️ Running Locally
+
+### Backend
+
+```
+cd backend
+uvicorn app.main:app --reload --port 8001
+```
+
+### Frontend
+
+```
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 📌 Future Improvements
+
+* LLM-based answer evaluation
+* Real-time voice emotion analysis
+* Adaptive interview difficulty
+* Deployment (AWS / Docker)
+
+---
+
+## 👤 Author
+
+**Animesh Sahoo**
+
+* GitHub: https://github.com/animesh6532
+* Project: NeuroPath AI
+
+---
+
+## ⭐ Final Note
+
+This project is designed to replicate a **real hiring system using AI** — combining resume intelligence, interview simulation, and learning guidance into one unified platform.
