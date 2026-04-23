@@ -37,6 +37,11 @@ export const AppProvider = ({ children }) => {
     localStorage.getItem("recentUpload") || null
   );
 
+  const [userProfile, setUserProfile] = useState(() => {
+    const saved = localStorage.getItem("user_profile");
+    return saved ? JSON.parse(saved) : null;
+  });
+
   useEffect(() => {
     if (analysisData) localStorage.setItem("analysis_data", JSON.stringify(analysisData));
     else localStorage.removeItem("analysis_data");
@@ -72,6 +77,11 @@ export const AppProvider = ({ children }) => {
     }
   }, [recentUpload]);
 
+  useEffect(() => {
+    if (userProfile) localStorage.setItem("user_profile", JSON.stringify(userProfile));
+    else localStorage.removeItem("user_profile");
+  }, [userProfile]);
+
   const clearAllAppData = () => {
     setAnalysisData(null);
     setResumeHistory([]);
@@ -80,6 +90,7 @@ export const AppProvider = ({ children }) => {
     setCodingProgress({ streak: 0, completedToday: false, lastActive: null, solvedCount: 0 });
     setAptitudeResult(null);
     setRecentUpload(null);
+    setUserProfile(null);
 
     localStorage.removeItem("analysis_data");
     localStorage.removeItem("resume_history");
@@ -88,6 +99,7 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem("coding_progress");
     localStorage.removeItem("aptitude_result");
     localStorage.removeItem("recentUpload");
+    localStorage.removeItem("user_profile");
   };
 
   return (
@@ -107,6 +119,8 @@ export const AppProvider = ({ children }) => {
         setAptitudeResult,
         recentUpload,
         setRecentUpload,
+        userProfile,
+        setUserProfile,
         clearAllAppData,
       }}
     >

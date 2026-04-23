@@ -48,13 +48,19 @@ function AptitudeTest() {
       }
     }
 
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+    };
+
     enterFullscreen();
     document.addEventListener("visibilitychange", handleVisibilityChange);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("contextmenu", handleContextMenu);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("contextmenu", handleContextMenu);
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(err => console.log(err));
       }

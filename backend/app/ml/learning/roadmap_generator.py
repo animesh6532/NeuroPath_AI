@@ -17,7 +17,7 @@ def generate_learning_roadmap(weaknesses: list, missing_skills: list, domain: st
                 "https://github.com/donnemartin/system-design-primer"
             ]
         })
-        return roadmap
+        return {"topics": roadmap}
 
     for i, area in enumerate(combined_areas):
         level = "Beginner" if i % 2 == 0 else "Intermediate"
@@ -25,14 +25,15 @@ def generate_learning_roadmap(weaknesses: list, missing_skills: list, domain: st
             "skill": area,
             "level": level,
             "steps": [
-                f"Learn basics of {area}",
-                f"Implement simple models or projects using {area}",
-                f"Study advanced {area} concepts and optimizations"
+                f"Understand the core concepts of {area} architecture",
+                f"Build a small project implementing {area} patterns",
+                f"Practice debugging and optimizing {area} workflows"
             ],
             "resources": [
-                f"https://www.youtube.com/results?search_query={area.replace(' ', '+')}+tutorial",
-                f"https://www.google.com/search?q={area.replace(' ', '+')}+documentation"
+                f"https://www.coursera.org/search?query={area.replace(' ', '%20')}",
+                f"https://github.com/search?q={area.replace(' ', '+')}+tutorial",
+                f"https://www.freecodecamp.org/news/search/?q={area.replace(' ', '%20')}"
             ]
         })
 
-    return roadmap
+    return {"topics": roadmap}

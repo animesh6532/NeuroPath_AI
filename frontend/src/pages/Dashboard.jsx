@@ -23,6 +23,7 @@ function Dashboard() {
   const { resume_score, best_domain } = analysisData;
   const interview_score = interviewData?.score || "N/A";
   const confidence = interviewData?.confidence || "N/A";
+  const communication = interviewData?.communication || "N/A";
   const streak = codingProgress?.streak || 0;
   const isTechnical = best_domain === "Technology";
   
@@ -87,6 +88,7 @@ function Dashboard() {
         <StatCard title="Interview Score" value={interview_score !== "N/A" ? `${interview_score}%` : "N/A"} />
         <StatCard title="Aptitude Score" value={aptitudeResult ? `${aptitudeResult.score}/${aptitudeResult.total}` : "N/A"} />
         <StatCard title="Confidence Level" value={confidence !== "N/A" ? `${confidence}%` : "N/A"} />
+        <StatCard title="Communication" value={communication !== "N/A" ? `${communication}%` : "N/A"} />
       </div>
 
       {isTechnical && (

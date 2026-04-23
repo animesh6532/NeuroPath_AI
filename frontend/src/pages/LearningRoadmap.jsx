@@ -14,10 +14,11 @@ function LearningRoadmap() {
 
   useEffect(() => {
     const fetchRoadmap = async () => {
-      // Generate roadmap if we have either resume missing skills or interview weaknesses
+      if (!interviewData) return;
+
       const hasWeaknesses = interviewData?.weaknesses?.length > 0;
       const hasMissingSkills = analysisData?.missing_skills?.length > 0;
-      
+
       if (roadmapData || (!hasWeaknesses && !hasMissingSkills)) return;
 
       try {
@@ -39,6 +40,17 @@ function LearningRoadmap() {
 
     fetchRoadmap();
   }, [interviewData, analysisData, roadmapData, setRoadmapData]);
+
+  if (!interviewData) {
+    return (
+      <div className="roadmap-page">
+        <div className="roadmap-card" style={{ maxWidth: '900px', width: '100%', textAlign: 'center' }}>
+          <h2>Access Restricted</h2>
+          <p style={{ color: '#94a3b8' }}>Complete an interview to generate your personalized AI learning roadmap.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleToggleStep = (skillIndex, stepIndex) => {
     const key = `${skillIndex}-${stepIndex}`;
@@ -67,16 +79,16 @@ function LearningRoadmap() {
                     {module.level}
                   </span>
                 </div>
-                
+
                 <h4 style={{ color: '#cbd5e1', marginBottom: '10px' }}>Action Plan:</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {module.steps.map((step, stepIndex) => {
                     const isChecked = !!progress[`${skillIndex}-${stepIndex}`];
                     return (
                       <label key={stepIndex} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={isChecked} 
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
                           onChange={() => handleToggleStep(skillIndex, stepIndex)}
                           style={{ width: '18px', height: '18px' }}
                         />

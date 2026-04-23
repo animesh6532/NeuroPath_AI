@@ -4,6 +4,23 @@ const API = axios.create({
   baseURL: "http://127.0.0.1:8001",
 });
 
+API.interceptors.response.use(
+  (response) => {
+    // If the response follows our { success, data, message } wrapper structure
+    if (response.data && typeof response.data.success !== "undefined") {
+      // Create a fake response where `response.data` is the inner data, to avoid breaking legacy code
+      // We also attach full response to `response.originalData` just in case
+      return {
+        ...response,
+        data: response.data.data,
+        originalData: response.data
+      };
+    }
+    return response;
+  },
+  (error) => Promise.reject(error)
+);
+
 // ================= AUTH API =================
 export const authAPI = {
   login: (data) => API.post("/auth/login", data),
@@ -52,6 +69,12 @@ export const aptitudeAPI = {
 // ================= DASHBOARD API =================
 export const dashboardAPI = {
   getDashboard: () => API.get("/dashboard"),
+};
+
+// ================= PROFILE API =================
+export const profileAPI = {
+  getProfile: () => API.get("/get-profile"),
+  updateProfile: (data) => API.post("/update-profile", data),
 };
 
 export default API;
