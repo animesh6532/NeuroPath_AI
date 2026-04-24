@@ -25,111 +25,200 @@ It helps users:
 
 ## 🎯 Key Features
 
+---
+
+### 🏠 Landing Page & Authentication
+
+<p align="center">
+  <img src="./assets/landing.gif" width="800"/>
+</p>
+
+* Modern AI SaaS landing experience designed for clarity and engagement
+* Smooth onboarding with secure authentication system (Login / Register)
+* Responsive UI with clean navigation and intuitive user flow
+* Built to reflect a real-world product-level interface, not a basic project
+
+---
+
 ### 📄 Resume Intelligence Engine
 
-* Extracts:
+<p align="center">
+  <img src="./assets/resume.gif" width="800"/>
+</p>
 
-  * Skills
-  * Projects
-  * Experience
-* Predicts:
-
-  * Best domain
-  * Top career paths
-* Calculates:
-
-  * Resume score
-  * Skill gaps
+* Automatically extracts:
+  * Technical skills
+  * Projects and achievements
+  * Work experience
+* Uses intelligent matching to:
+  * Identify best-fit domain
+  * Recommend top career paths
+* Generates:
+  * Resume score based on industry standards
+  * Missing skills analysis for improvement
+* Helps users understand exactly **where they stand and what to improve**
 
 ---
 
 ### 🎤 AI Mock Interview System
 
-* Generates **15 structured questions**:
+<p align="center">
+  <img src="./assets/interview.gif" width="800"/>
+</p>
 
-  * 1 Introduction
-  * 2 Soft skills
-  * 8 Technical (skill-based)
-  * 4 Project/Domain-based
-* No repetition across sessions
-* Difficulty: **core + advanced level**
+* Dynamically generates **15 structured interview questions**:
+  * 1 Introduction (HR-style)
+  * 2 Soft skill questions
+  * 8 Deep technical questions (based on user skills)
+  * 4 Project/domain-based questions
+* Ensures:
+  * No repetition across sessions
+  * High difficulty (core + advanced level)
+* Simulates a **real technical interview environment**
 
----
+#### 🔒 Strict Mode (Proctoring)
 
-### 📷 Proctoring System (OpenCV)
+<p align="center">
+  <img src="./assets/interview-strict.gif" width="700"/>
+</p>
 
-* Real-time webcam monitoring
+* Real-time webcam monitoring using computer vision
 * Detects:
-
+  * No face presence
   * Multiple persons
-  * No face
-  * Suspicious activity
-* Ensures interview integrity
+  * Suspicious movement
+* Enforces discipline similar to real interview conditions
+* Prevents cheating and ensures authenticity
 
----
+#### 📊 Interview Result
 
-### 📊 Interview Evaluation Engine
+<p align="center">
+  <img src="./assets/interview-result.gif" width="700"/>
+</p>
 
-* Scores:
-
-  * Technical ability
-  * Communication
-  * Confidence
-* Outputs:
-
+* Evaluates performance across:
+  * Technical knowledge
+  * Communication clarity
+  * Confidence level
+* Provides:
   * Weakness analysis
-  * Performance report
+  * Improvement suggestions
+  * Structured performance report
+* Helps users understand **how they perform in real interviews**
 
 ---
 
 ### 🛣️ Learning Roadmap System
 
-#### For Technical Users:
+<p align="center">
+  <img src="./assets/roadmap_source.gif" width="800"/>
+</p>
 
-* Personalized roadmap based on:
 
-  * Weaknesses
-  * Missing skills
+* Generates a **personalized learning roadmap** based on:
+  * Interview weaknesses
+  * Missing skills from resume analysis
 * Includes:
+  * Step-by-step learning path
+  * Curated learning resources (videos, docs, articles)
+  * Difficulty progression
+* Focuses on **targeted improvement instead of generic learning**
+* Tracks progress and helps users move toward job readiness systematically
 
-  * Topics
-  * Resources
-  * Progress tracking
+---
 
-#### Daily Coding System:
+### 📈 Placement Prediction
 
-* 2–3 problems daily
-* Fullscreen mode (exit = terminate)
+<p align="center">
+  <img src="./assets/placement.gif" width="800"/>
+</p>
+
+* Predicts placement readiness using:
+  * Resume quality
+  * Interview performance
+  * Skill gap analysis
+* Suggests:
+  * Suitable job roles
+  * Domain alignment
+* Integrates opportunity discovery:
+  * Direct job/internship links (LinkedIn, Internshala, etc.)
+* Bridges the gap between **preparation and actual hiring opportunities**
+
+---
+
+### 💻 Daily Coding Challenge
+
+<p align="center">
+  <img src="./assets/coding.gif" width="800"/>
+</p>
+
+* Provides **2–3 curated coding problems daily**
+* Covers:
+  * Data Structures & Algorithms
+  * Real interview-level questions
 * Tracks:
-
-  * Streak
+  * Daily streak
   * Problems solved
+  * Progress over time
+* Encourages consistency and builds problem-solving skills
+
+#### 🔒 Strict Mode
+
+<p align="center">
+  <img src="./assets/coding-strict.gif" width="700"/>
+</p>
+
+* Fullscreen enforced coding environment
+* Exit detection → session termination
+* Simulates real coding test conditions
+* Prevents distractions and ensures focus
 
 ---
 
-#### For All Users (Aptitude System):
+### 🧠 Aptitude Exam System
 
-* 20 questions
-* 30-minute timer
-* Fullscreen strict mode
-* Tracks:
+<p align="center">
+  <img src="./assets/aptitude.gif" width="800"/>
+</p>
 
-  * Score
-  * Accuracy
+* Standardized aptitude test:
+  * 20 questions
+  * Logical reasoning, quantitative, analytical
+* Time-bound:
+  * 30-minute exam environment
+* Designed for both technical and non-technical users
+
+#### 🔒 Strict Mode
+
+<p align="center">
+  <img src="./assets/aptitude-strict.gif" width="700"/>
+</p>
+
+* Fullscreen exam enforcement
+* Auto-submit on:
+  * Tab switch
+  * Exit
+* Ensures exam integrity similar to real assessments
 
 ---
 
-### 📈 Dashboard System
+### 👤 Profile & Dashboard
 
-* Resume Score
-* Interview Score
-* Confidence Level
-* Aptitude Score
-* Coding Streak
-* Learning Progress
+<p align="center">
+  <img src="./assets/profile.gif" width="800"/>
+</p>
+
+* Centralized performance dashboard displaying:
+  * Resume score
+  * Interview score
+  * Confidence level
+  * Coding streak
+  * Aptitude results
+* Personalized insights based on user journey
+* Tracks overall progress across all modules
+* Acts as a **career control center for the user**
 
 ---
-
 ## 🧠 System Architecture
 
 ```mermaid
@@ -245,7 +334,6 @@ npm run dev
 **Animesh Sahoo**
 
 * GitHub: https://github.com/animesh6532
-* Project: NeuroPath AI
 
 ---
 
