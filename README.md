@@ -1,29 +1,48 @@
 <div align="center">
 
-# 🧠 NeuroPath AI
+# 🧠 NeuroPath AI  
 
-### AI-Powered Career Intelligence & Interview Simulation Platform
+### 🚀 AI-Powered Career Intelligence & Interview Simulation Platform  
 
-> Transforming resume data into actionable career insights using AI
+> Transforming resume data into actionable career insights using AI  
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Frontend-React-blue?style=for-the-badge&logo=react"/>
+  <img src="https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge&logo=fastapi"/>
+  <img src="https://img.shields.io/badge/AI-ML-orange?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/Database-SQLite-lightgrey?style=for-the-badge"/>
+</p>
 
 </div>
 
 ---
 
-## 🚀 Overview
+## 📌 Table of Contents
 
-**NeuroPath AI** is a full-stack AI platform that simulates a real-world hiring pipeline — from resume analysis to interview evaluation and personalized learning.
-
-It helps users:
-
-* Understand their career trajectory
-* Identify skill gaps
-* Practice high-level interviews
-* Improve placement readiness with data-driven insights
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [System Architecture](#-system-architecture)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Run Locally](#-running-locally)
+- [Future Improvements](#-future-improvements)
 
 ---
 
-## 🎯 Key Features
+## 🚀 Overview
+
+**NeuroPath AI** is a full-stack AI platform that simulates a **real-world hiring pipeline** — from resume analysis → interview → roadmap → placement.
+
+It helps users:
+
+✔ Understand their career trajectory  
+✔ Identify skill gaps  
+✔ Practice real interview scenarios  
+✔ Improve placement readiness with data-driven insights  
+
+---
+
+# 🎯 Key Features
 
 ---
 
@@ -33,10 +52,10 @@ It helps users:
   <img src="./assets/landing.gif" width="800"/>
 </p>
 
-* Modern AI SaaS landing experience designed for clarity and engagement
-* Smooth onboarding with secure authentication system (Login / Register)
-* Responsive UI with clean navigation and intuitive user flow
-* Built to reflect a real-world product-level interface, not a basic project
+- Clean SaaS-style UI  
+- Secure login & registration  
+- Smooth onboarding experience  
+- Responsive modern design  
 
 ---
 
@@ -46,17 +65,12 @@ It helps users:
   <img src="./assets/resume.gif" width="800"/>
 </p>
 
-* Automatically extracts:
-  * Technical skills
-  * Projects and achievements
-  * Work experience
-* Uses intelligent matching to:
-  * Identify best-fit domain
-  * Recommend top career paths
-* Generates:
-  * Resume score based on industry standards
-  * Missing skills analysis for improvement
-* Helps users understand exactly **where they stand and what to improve**
+- Extracts skills, projects, experience  
+- Detects domain automatically  
+- Generates resume score  
+- Identifies missing skills  
+
+👉 Gives clear **career direction + improvement path**
 
 ---
 
@@ -66,29 +80,20 @@ It helps users:
   <img src="./assets/interview.gif" width="800"/>
 </p>
 
-* Dynamically generates **15 structured interview questions**:
-  * 1 Introduction (HR-style)
-  * 2 Soft skill questions
-  * 8 Deep technical questions (based on user skills)
-  * 4 Project/domain-based questions
-* Ensures:
-  * No repetition across sessions
-  * High difficulty (core + advanced level)
-* Simulates a **real technical interview environment**
+- 15 intelligent questions  
+- No repetition  
+- Skill-based + project-based  
+- Real interview simulation  
 
-#### 🔒 Strict Mode (Proctoring)
+#### 🔒 Strict Mode
 
 <p align="center">
   <img src="./assets/interview-strict.gif" width="700"/>
 </p>
 
-* Real-time webcam monitoring using computer vision
-* Detects:
-  * No face presence
-  * Multiple persons
-  * Suspicious movement
-* Enforces discipline similar to real interview conditions
-* Prevents cheating and ensures authenticity
+- Face detection (OpenCV)  
+- No-face & multi-person detection  
+- Anti-cheating system  
 
 #### 📊 Interview Result
 
@@ -96,34 +101,23 @@ It helps users:
   <img src="./assets/interview-result.gif" width="700"/>
 </p>
 
-* Evaluates performance across:
-  * Technical knowledge
-  * Communication clarity
-  * Confidence level
-* Provides:
-  * Weakness analysis
-  * Improvement suggestions
-  * Structured performance report
-* Helps users understand **how they perform in real interviews**
+- Technical score  
+- Communication score  
+- Confidence level  
+- Weakness analysis  
 
 ---
 
-### 🛣️ Learning Roadmap System
+### 🛣️ Learning Roadmap
 
 <p align="center">
   <img src="./assets/roadmap_source.gif" width="800"/>
 </p>
 
-
-* Generates a **personalized learning roadmap** based on:
-  * Interview weaknesses
-  * Missing skills from resume analysis
-* Includes:
-  * Step-by-step learning path
-  * Curated learning resources (videos, docs, articles)
-  * Difficulty progression
-* Focuses on **targeted improvement instead of generic learning**
-* Tracks progress and helps users move toward job readiness systematically
+- Personalized roadmap  
+- Based on weaknesses + missing skills  
+- Step-by-step improvement path  
+- Learning resources included  
 
 ---
 
@@ -133,16 +127,9 @@ It helps users:
   <img src="./assets/placement.gif" width="800"/>
 </p>
 
-* Predicts placement readiness using:
-  * Resume quality
-  * Interview performance
-  * Skill gap analysis
-* Suggests:
-  * Suitable job roles
-  * Domain alignment
-* Integrates opportunity discovery:
-  * Direct job/internship links (LinkedIn, Internshala, etc.)
-* Bridges the gap between **preparation and actual hiring opportunities**
+- Predicts placement readiness  
+- Suggests job roles  
+- Links to real jobs (LinkedIn, Internshala)  
 
 ---
 
@@ -152,15 +139,9 @@ It helps users:
   <img src="./assets/coding.gif" width="800"/>
 </p>
 
-* Provides **2–3 curated coding problems daily**
-* Covers:
-  * Data Structures & Algorithms
-  * Real interview-level questions
-* Tracks:
-  * Daily streak
-  * Problems solved
-  * Progress over time
-* Encourages consistency and builds problem-solving skills
+- 2–3 problems daily  
+- Tracks streak  
+- Improves DSA skills  
 
 #### 🔒 Strict Mode
 
@@ -168,25 +149,20 @@ It helps users:
   <img src="./assets/coding-strict.gif" width="700"/>
 </p>
 
-* Fullscreen enforced coding environment
-* Exit detection → session termination
-* Simulates real coding test conditions
-* Prevents distractions and ensures focus
+- Fullscreen enforcement  
+- Exit = termination  
 
 ---
 
-### 🧠 Aptitude Exam System
+### 🧠 Aptitude System
 
 <p align="center">
   <img src="./assets/aptitude.gif" width="800"/>
 </p>
 
-* Standardized aptitude test:
-  * 20 questions
-  * Logical reasoning, quantitative, analytical
-* Time-bound:
-  * 30-minute exam environment
-* Designed for both technical and non-technical users
+- 20 questions  
+- 30 min timer  
+- Standardized test  
 
 #### 🔒 Strict Mode
 
@@ -194,11 +170,8 @@ It helps users:
   <img src="./assets/aptitude-strict.gif" width="700"/>
 </p>
 
-* Fullscreen exam enforcement
-* Auto-submit on:
-  * Tab switch
-  * Exit
-* Ensures exam integrity similar to real assessments
+- Auto submit on exit  
+- Real exam environment  
 
 ---
 
@@ -208,19 +181,16 @@ It helps users:
   <img src="./assets/profile.gif" width="800"/>
 </p>
 
-* Centralized performance dashboard displaying:
-  * Resume score
-  * Interview score
-  * Confidence level
-  * Coding streak
-  * Aptitude results
-* Personalized insights based on user journey
-* Tracks overall progress across all modules
-* Acts as a **career control center for the user**
+- Resume score  
+- Interview score  
+- Coding + aptitude progress  
+- Centralized career dashboard  
 
 ---
-## 🧠 System Architecture
 
+# 🧠 System Architecture
+
+```mermaid
 flowchart TD
 
 A[User] --> B[Authentication]
@@ -250,25 +220,24 @@ H --> H3[Confidence Level]
 H --> H4[Weakness Detection]
 
 H4 --> I[Learning Roadmap Engine]
-
 D4 --> I
 
-I --> I1[Personalized Topics]
-I --> I2[Learning Resources]
+I --> I1[Topics]
+I --> I2[Resources]
 I --> I3[Progress Tracking]
 
-I --> J{User Domain}
+I --> J{User Type}
 
-J -->|Technical| K[Daily Coding System]
-K --> K1[Daily Problems]
-K --> K2[Fullscreen Mode]
-K --> K3[Streak Tracking]
+J -->|Technical| K[Daily Coding]
+K --> K1[Problems]
+K --> K2[Strict Mode]
+K --> K3[Streak]
 
-J -->|All Users| L[Aptitude System]
+J -->|All Users| L[Aptitude]
 L --> L1[Questions]
 L --> L2[Timer]
 L --> L3[Strict Mode]
-L --> L4[Score Accuracy]
+L --> L4[Score]
 
 H --> M[Dashboard]
 D --> M
@@ -276,106 +245,4 @@ K --> M
 L --> M
 I --> M
 
-M --> N[Career Insights Progress]
-
----
-
-## 🛠️ Tech Stack
-
-### Frontend
-
-* React (Vite)
-* Context API (State Management)
-* Modern CSS (Glassmorphism UI)
-
-### Backend
-
-* FastAPI
-* REST APIs
-* Modular architecture
-
-### AI / ML
-
-* NLP-based resume parsing
-* Skill matching logic
-* Rule-based + ML hybrid evaluation
-
-### Computer Vision
-
-* OpenCV (Face Detection & Proctoring)
-
-### Database
-
-* SQLite / MySQL
-
----
-
-## ⚡ Unique Highlights
-
-* Real-world hiring pipeline simulation
-* Strict fullscreen interview & test environment
-* Skill-based dynamic interview generation
-* Integrated coding + aptitude system
-* End-to-end data flow (Resume → Interview → Roadmap → Dashboard)
-
----
-
-## 📂 Project Structure
-
-```
-NeuroPath_AI/
-│
-├── frontend/
-│   ├── src/pages/
-│   ├── src/context/
-│   ├── src/api/
-│
-├── backend/
-│   ├── app/ml/
-│   ├── app/routes/
-│   ├── app/proctoring/
-│
-└── README.md
-```
-
----
-
-## ▶️ Running Locally
-
-### Backend
-
-```
-cd backend
-uvicorn app.main:app --reload --port 8001
-```
-
-### Frontend
-
-```
-cd frontend
-npm install
-npm run dev
-```
-
----
-
-## 📌 Future Improvements
-
-* LLM-based answer evaluation
-* Real-time voice emotion analysis
-* Adaptive interview difficulty
-* Deployment (AWS / Docker)
-
----
-
-## 👤 Author
-
-**Animesh Sahoo**
-
-* GitHub: https://github.com/animesh6532
-
----
-
-## ⭐ Final Note
-
-This project is designed to replicate a **real hiring system using AI** — combining resume intelligence, interview simulation, and learning guidance into one unified platform.
+M --> N[Career Insights]
