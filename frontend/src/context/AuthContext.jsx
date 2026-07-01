@@ -12,31 +12,46 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
+      if (!user) {
+        const fallbackUser = { loggedIn: true };
+        try {
+          localStorage.setItem("user", JSON.stringify(fallbackUser));
+        } catch (e) {}
+        setUser(fallbackUser);
+      }
       setLoading(false);
     } else {
       setUser(null);
-      localStorage.removeItem("user");
+      try {
+        localStorage.removeItem("user");
+      } catch (e) {}
       setLoading(false);
     }
-  }, [token]);
+  }, [token, user]);
 
   const login = (jwtToken, userData = null) => {
-    localStorage.setItem("token", jwtToken);
+    try {
+      localStorage.setItem("token", jwtToken);
+      if (userData) {
+        localStorage.setItem("user", JSON.stringify(userData));
+      } else {
+        localStorage.setItem("user", JSON.stringify({ loggedIn: true }));
+      }
+    } catch (e) {}
+    
     setToken(jwtToken);
-
     if (userData) {
-      localStorage.setItem("user", JSON.stringify(userData));
       setUser(userData);
     } else {
-      const fallbackUser = { loggedIn: true };
-      localStorage.setItem("user", JSON.stringify(fallbackUser));
-      setUser(fallbackUser);
+      setUser({ loggedIn: true });
     }
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch (e) {}
     setToken(null);
     setUser(null);
   };
@@ -47,7 +62,7 @@ export const AuthProvider = ({ children }) => {
         token,
         user,
         loading,
-        isAuthenticated: !!token,
+        isAuthenticated: !!user && !!token,
         login,
         logout,
       }}

@@ -60,9 +60,9 @@ export const GlassButton = ({ children, className = "", primary = false, style =
   // Secondary buttons use a light glass frosted background with navy text.
   const buttonBg = primary 
     ? "linear-gradient(135deg, #446A9C, #1A3F75)" 
-    : "rgba(255, 255, 255, 0.65)";
+    : "rgba(255, 255, 255, 0.45)";
   const buttonColor = primary 
-    ? "#E8F3FF" /* very light blue, legible, non-white */
+    ? "#FFFFFF" 
     : "var(--color-navy)";
   const buttonBorder = primary
     ? "1px solid rgba(255, 255, 255, 0.25)"
