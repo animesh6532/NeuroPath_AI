@@ -244,7 +244,7 @@ function About() {
     { name: "GitHub", url: "https://github.com/animesh6532", display: "github.com/animesh6532", icon: <GithubIcon size={18} /> },
     { name: "LinkedIn", url: "https://www.linkedin.com/in/animesh-sahoo-b03151302/", display: "linkedin.com/in/animesh-sahoo", icon: <LinkedinIcon size={18} /> },
     { name: "Portfolio", url: "https://animeshportfolio6532.netlify.app/", display: "animeshportfolio6532.netlify.app", icon: <Globe size={18} /> },
-    { name: "Support Email", url: "mailto:animeshsahoo6532@gmail.com", display: "animeshsahoo6532@gmail.com", icon: <AlertCircle size={18} />, isEmail: true }
+    { name: "Support Email", url: "mailto:animeshsahoo451@gmail.com", display: "animeshsahoo451@gmail.com", icon: <AlertCircle size={18} />, isEmail: true }
   ];
 
   if (user) {
