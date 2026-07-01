@@ -55,6 +55,7 @@ function AIInterviewLive() {
   const [violations, setViolations] = useState([]);
   const [warningCount, setWarningCount] = useState(0);
   const [activeWarning, setActiveWarning] = useState("");
+  const [silenceRemaining, setSilenceRemaining] = useState(5);
 
   const [isFullscreenActive, setIsFullscreenActive] = useState(true);
   const [needsFullscreenActivation, setNeedsFullscreenActivation] = useState(false);
@@ -140,12 +141,31 @@ function AIInterviewLive() {
       handleViolation("Attempted browser back navigation");
     };
 
+    const handleKeyDown = (e) => {
+      // Prevent F12
+      if (e.keyCode === 123) {
+        e.preventDefault();
+        handleViolation("Opened DevTools (F12)");
+      }
+      // Prevent Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
+      if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+        e.preventDefault();
+        handleViolation("Opened DevTools shortcut");
+      }
+      // Prevent Ctrl+U
+      if (e.ctrlKey && e.keyCode === 85) {
+        e.preventDefault();
+        handleViolation("View Source shortcut");
+      }
+    };
+
     enterFullscreen();
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("blur", handleWindowBlur);
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("popstate", handlePopState);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -153,6 +173,7 @@ function AIInterviewLive() {
       window.removeEventListener("blur", handleWindowBlur);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("keydown", handleKeyDown);
       speechSynthesis.cancel();
       stopListening();
       if (timerRef.current) clearInterval(timerRef.current);
@@ -187,10 +208,11 @@ function AIInterviewLive() {
         });
       }, 1000);
     } else if (phase === "ANSWERING") {
-      setTimeLeft(ANSWER_TIME);
+      setTimeLeft(questionTimeLeft);
       setStatus("Microphone active. Speak your answer now...");
       startListening();
       lastSpeechTimeRef.current = Date.now();
+      setSilenceRemaining(5);
 
       // Answer Countdown Timer
       if (timerRef.current) clearInterval(timerRef.current);
@@ -211,11 +233,16 @@ function AIInterviewLive() {
         const words = answerTextRef.current.trim().split(/\s+/).filter(Boolean);
         // If candidate has spoken at least 3 words and has been silent for 5 seconds, auto-submit
         if (words.length >= 3) {
-          if (Date.now() - lastSpeechTimeRef.current > SILENCE_TIMEOUT) {
+          const timeSinceSpeech = Date.now() - lastSpeechTimeRef.current;
+          const remaining = Math.max(0, Math.ceil((SILENCE_TIMEOUT - timeSinceSpeech) / 1000));
+          setSilenceRemaining(remaining);
+          if (timeSinceSpeech > SILENCE_TIMEOUT) {
             clearInterval(silenceCheckRef.current);
             clearInterval(timerRef.current);
             submitAnswerAndAdvance();
           }
+        } else {
+          setSilenceRemaining(5);
         }
       }, 500);
     }
@@ -562,6 +589,11 @@ function AIInterviewLive() {
                   </span>
                 )}
               </p>
+              {phase === "ANSWERING" && silenceRemaining < 4 && (
+                <div style={{ color: "#ef4444", fontSize: "0.85rem", fontWeight: "700", marginTop: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <AlertTriangle size={14} /> No speech detected. Auto-submitting in {silenceRemaining}s...
+                </div>
+              )}
             </div>
           </GlassCard>
         </div>

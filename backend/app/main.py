@@ -313,6 +313,7 @@ async def generate_roadmap(data: dict, user=Depends(get_current_user)):
 @app.get("/daily-challenge")
 async def daily_challenge(user=Depends(get_current_user)):
     from app.db.database import SessionLocal
+    from app.db.models import CodingAttempt
     from app.ml.coding.coding_engine import select_daily_challenges
     db = SessionLocal()
     try:
@@ -322,6 +323,24 @@ async def daily_challenge(user=Depends(get_current_user)):
         domain = profile.get("career_title") or "General"
         
         res = select_daily_challenges(db, email=user, domain=domain)
+        if not res.get("skip") and res.get("challenges"):
+            cids = [c["id"] for c in res["challenges"]]
+            attempts = db.query(CodingAttempt).filter(
+                CodingAttempt.email == user,
+                CodingAttempt.problem_id.in_(cids)
+            ).order_by(CodingAttempt.timestamp.desc()).all()
+            res["attempts"] = [{
+                "problem_id": a.problem_id,
+                "language": a.language,
+                "status": a.status,
+                "runtime": a.runtime,
+                "memory": a.memory,
+                "passed_test_cases": a.passed_test_cases,
+                "total_test_cases": a.total_test_cases,
+                "timestamp": a.timestamp
+            } for a in attempts]
+        else:
+            res["attempts"] = []
         return ok(res, "Challenges fetched")
     except Exception as e:
         return err(e)

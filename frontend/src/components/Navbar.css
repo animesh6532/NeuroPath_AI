@@ -76,24 +76,14 @@
   color: var(--color-dark-blue);
 }
 
-/* Apple Underline Pill */
-.navbar-links a::after {
-  content: '';
+.active-nav-indicator {
   position: absolute;
-  bottom: 0;
+  bottom: -4px;
   left: 0;
-  width: 100%;
+  right: 0;
   height: 2px;
   background: var(--color-navy);
-  transform: scaleX(0);
-  transform-origin: right;
-  transition: transform var(--transition-fast);
-}
-
-.navbar-links a:hover::after,
-.navbar-links a.active::after {
-  transform: scaleX(1);
-  transform-origin: left;
+  border-radius: 999px;
 }
 
 /* Actions Right */

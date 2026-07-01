@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { 
   Award, FileText, CheckCircle2, TrendingUp, Flame, 
-  BookOpen, Play, Calendar, Star, Code, Users, Briefcase, Activity
+  BookOpen, Code, Activity, Sparkles
 } from "lucide-react";
 import { GlassCard, GlassButton, GlassBadge, GlassMetric } from "../components/ui/DesignSystem";
 import "./Dashboard.css";
@@ -362,6 +362,53 @@ function Dashboard() {
           )}
         </GlassCard>
       </div>
+
+      {/* AI Smart Recommendations */}
+      <GlassCard style={{ marginTop: "24px", padding: "28px" }}>
+        <h3 className="text-title" style={{ fontSize: "1.1rem", marginBottom: "18px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <Sparkles size={16} style={{ color: "var(--color-medium-blue)" }} /> AI Smart Recommendations
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
+          {analysisData?.missing_skills?.length > 0 ? (
+            <div style={{ background: "rgba(255, 255, 255, 0.45)", padding: "16px", borderRadius: "14px", border: "1px solid var(--glass-border)" }}>
+              <strong style={{ fontSize: "0.9rem", color: "var(--color-navy)", display: "block", marginBottom: "6px" }}>Target Skill Acquisition</strong>
+              <p className="text-small" style={{ margin: 0, color: "var(--text-secondary)" }}>
+                Acquire <strong>{analysisData.missing_skills[0]}</strong> to improve your alignment indexing for {best_domain}.
+              </p>
+            </div>
+          ) : (
+            <div style={{ background: "rgba(255, 255, 255, 0.45)", padding: "16px", borderRadius: "14px", border: "1px solid var(--glass-border)" }}>
+              <strong style={{ fontSize: "0.9rem", color: "var(--color-navy)", display: "block", marginBottom: "6px" }}>Target Skill Acquisition</strong>
+              <p className="text-small" style={{ margin: 0, color: "var(--text-secondary)" }}>
+                All parsed skills match your target domain! Re-upload CV if you have added new credentials.
+              </p>
+            </div>
+          )}
+
+          {interviewData?.weaknesses?.length > 0 ? (
+            <div style={{ background: "rgba(255, 255, 255, 0.45)", padding: "16px", borderRadius: "14px", border: "1px solid var(--glass-border)" }}>
+              <strong style={{ fontSize: "0.9rem", color: "var(--color-navy)", display: "block", marginBottom: "6px" }}>Vocal Communication</strong>
+              <p className="text-small" style={{ margin: 0, color: "var(--text-secondary)" }}>
+                Practice speaking on <strong>{interviewData.weaknesses[0]}</strong> to reduce hesitation patterns.
+              </p>
+            </div>
+          ) : (
+            <div style={{ background: "rgba(255, 255, 255, 0.45)", padding: "16px", borderRadius: "14px", border: "1px solid var(--glass-border)" }}>
+              <strong style={{ fontSize: "0.9rem", color: "var(--color-navy)", display: "block", marginBottom: "6px" }}>Vocal Communication</strong>
+              <p className="text-small" style={{ margin: 0, color: "var(--text-secondary)" }}>
+                Complete a proctored voice interview session to receive customized speaking analytics.
+              </p>
+            </div>
+          )}
+
+          <div style={{ background: "rgba(255, 255, 255, 0.45)", padding: "16px", borderRadius: "14px", border: "1px solid var(--glass-border)" }}>
+            <strong style={{ fontSize: "0.9rem", color: "var(--color-navy)", display: "block", marginBottom: "6px" }}>Logical Reasoning</strong>
+            <p className="text-small" style={{ margin: 0, color: "var(--text-secondary)" }}>
+              {aptitudeResult ? `You scored ${Math.round(aptitudeResult.accuracy)}% accuracy. Practice another test to refine pace.` : "Take the cognitive aptitude test to compile your quantitative reasoning rating."}
+            </p>
+          </div>
+        </div>
+      </GlassCard>
     </motion.div>
   );
 }

@@ -8,6 +8,7 @@ import "./index.css";
 import { AuthProvider } from "./context/AuthContext";
 import { AppProvider } from "./context/AppContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -15,7 +16,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <ThemeProvider>
         <AuthProvider>
           <AppProvider>
-            <App />
+            <ErrorBoundary>
+              <App />
+            </ErrorBoundary>
           </AppProvider>
         </AuthProvider>
       </ThemeProvider>

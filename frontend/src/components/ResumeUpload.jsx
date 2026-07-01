@@ -91,9 +91,7 @@ const ResumeUpload = () => {
 
       setSuccess("Resume analyzed successfully!");
 
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 800);
+      // Keep user on Resume Intelligence page for parsing, score reviews, and suggestion reports.
     } catch (err) {
       console.error("Resume upload error:", err);
       setError(

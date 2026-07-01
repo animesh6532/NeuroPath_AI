@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import ResumeUpload from "../components/ResumeUpload";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,6 +11,7 @@ import { GlassCard, GlassButton, GlassBadge, GlassProgress, GlassTabs } from "..
 import "./ResumePage.css";
 
 function ResumePage() {
+  const navigate = useNavigate();
   const { analysisData } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -52,9 +54,14 @@ function ResumePage() {
                 </div>
               )}
             </div>
-            <GlassButton primary className="no-print" onClick={handlePrint}>
-              <Download size={16} /> Download PDF Report
-            </GlassButton>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }} className="no-print">
+              <GlassButton onClick={handlePrint}>
+                <Download size={14} /> Download PDF Report
+              </GlassButton>
+              <GlassButton primary onClick={() => navigate("/dashboard")}>
+                Continue to Dashboard <ChevronRight size={14} />
+              </GlassButton>
+            </div>
           </div>
 
           {/* Premium Tab Navigation */}

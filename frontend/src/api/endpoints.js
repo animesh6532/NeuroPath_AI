@@ -74,6 +74,8 @@ export const interviewAPI = {
 // ================= DAILY CHALLENGE API =================
 export const dailyAPI = {
   getChallenges: () => API.get("/daily-challenge"),
+  runCode:       (payload) => API.post("/run-code", payload),
+  submitCode:    (payload) => API.post("/submit-code", payload),
 };
 
 // ================= APTITUDE API =================

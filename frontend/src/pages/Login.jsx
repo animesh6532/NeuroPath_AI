@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { authAPI } from "../api/endpoints";
 import { AuthContext } from "../context/AuthContext";
@@ -6,7 +6,17 @@ import "./Auth.css";
 
 function Login() {
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login, isAuthenticated } = useContext(AuthContext);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (isAuthenticated) {
+    return null;
+  }
 
   const [formData, setFormData] = useState({
     email: "",
