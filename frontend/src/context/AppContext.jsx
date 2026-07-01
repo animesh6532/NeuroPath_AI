@@ -30,10 +30,8 @@ export const AppProvider = ({ children }) => {
   const [resumeHistory,  setResumeHistory]      = useState(() => safeGet("resume_history", []));
   const [interviewData,  setInterviewDataRaw]   = useState(() => safeGet("interview_data", null));
   const [roadmapData,    setRoadmapDataRaw]     = useState(() => {
-    const saved = safeGet("roadmap", []);
-    if (Array.isArray(saved)) return saved;
-    if (saved && Array.isArray(saved.topics)) return saved.topics;
-    return [];
+    const saved = safeGet("roadmap", null);
+    return saved ?? [];
   });
   const [codingProgress, setCodingProgressRaw] = useState(() =>
     safeGet("coding_progress", { streak: 0, completedToday: false, lastActive: null, solvedCount: 0 })
@@ -44,12 +42,25 @@ export const AppProvider = ({ children }) => {
   });
   // null = not yet loaded, {} = loaded but empty
   const [userProfile,    setUserProfileRaw]    = useState(() => safeGet("user_profile", null));
+  const [roadmapProgress, setRoadmapProgressRaw] = useState(() => {
+    try {
+      const saved = localStorage.getItem("roadmap_progress");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
   // ── Persist ────────────────────────────────────────────────────────────
   useEffect(() => { safeSet("analysis_data",  analysisData);  }, [analysisData]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("roadmap_progress", JSON.stringify(roadmapProgress));
+    } catch {}
+  }, [roadmapProgress]);
   useEffect(() => { safeSet("resume_history", resumeHistory ?? []); }, [resumeHistory]);
   useEffect(() => { safeSet("interview_data", interviewData); }, [interviewData]);
-  useEffect(() => { safeSet("roadmap", Array.isArray(roadmapData) ? roadmapData : []); }, [roadmapData]);
+  useEffect(() => { safeSet("roadmap", roadmapData); }, [roadmapData]);
   useEffect(() => { safeSet("coding_progress", codingProgress); }, [codingProgress]);
   useEffect(() => { safeSet("aptitude_result", aptitudeResult); }, [aptitudeResult]);
   useEffect(() => {
@@ -79,8 +90,14 @@ export const AppProvider = ({ children }) => {
   };
 
   const setRoadmapData = (data) => {
-    if (Array.isArray(data))                    { setRoadmapDataRaw(data);        return; }
-    if (data && Array.isArray(data.topics))     { setRoadmapDataRaw(data.topics); return; }
+    if (Array.isArray(data)) {
+      setRoadmapDataRaw(data);
+      return;
+    }
+    if (data && typeof data === "object") {
+      setRoadmapDataRaw(data);
+      return;
+    }
     setRoadmapDataRaw([]);
   };
 
@@ -104,6 +121,7 @@ export const AppProvider = ({ children }) => {
 
   const setRecentUpload = (v) => setRecentUploadRaw(v || null);
   const setCodingProgress = (v) => setCodingProgressRaw(v);
+  const setRoadmapProgress = (v) => setRoadmapProgressRaw(v || {});
 
   const clearAllAppData = () => {
     setAnalysisDataRaw(null);
@@ -114,9 +132,10 @@ export const AppProvider = ({ children }) => {
     setAptitudeResult(null);
     setRecentUploadRaw(null);
     setUserProfileRaw(null);
+    setRoadmapProgressRaw({});
     [
       "analysis_data","resume_history","interview_data","roadmap",
-      "coding_progress","aptitude_result","recentUpload","user_profile",
+      "coding_progress","aptitude_result","recentUpload","user_profile","roadmap_progress"
     ].forEach((k) => { try { localStorage.removeItem(k); } catch {} });
   };
 
@@ -126,8 +145,9 @@ export const AppProvider = ({ children }) => {
         analysisData,   setAnalysisData,
         resumeHistory,  setResumeHistory,
         interviewData,  setInterviewData,
-        roadmapData: Array.isArray(roadmapData) ? roadmapData : [],
+        roadmapData,
         setRoadmapData,
+        roadmapProgress, setRoadmapProgress,
         codingProgress, setCodingProgress,
         aptitudeResult, setAptitudeResult,
         recentUpload,   setRecentUpload,

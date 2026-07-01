@@ -1,47 +1,30 @@
 .placement-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a, #111827);
-  padding: 40px 20px;
-  color: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
 .placement-card {
   max-width: 900px;
+  width: 100%;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 32px;
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 }
 
-.placement-card h1 {
-  font-size: 2rem;
-  margin-bottom: 10px;
+.job-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  transition: border-color var(--transition-fast) ease;
 }
 
-.placement-card p {
-  color: #9ca3af;
-  margin-bottom: 24px;
+.job-row:hover {
+  border-color: var(--glass-border-hover);
 }
 
-.prediction-box {
-  background: rgba(255, 255, 255, 0.04);
-  padding: 30px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  text-align: center;
-}
-
-.prediction-box h2 {
-  font-size: 2rem;
-  margin-bottom: 16px;
-  color: #60a5fa;
-}
-
-.prediction-box p {
-  font-size: 1rem;
-  color: #d1d5db;
-  margin-bottom: 10px;
+@media (max-width: 768px) {
+  .job-row {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
 }

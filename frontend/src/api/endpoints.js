@@ -4,6 +4,18 @@ const API = axios.create({
   baseURL: "http://127.0.0.1:8001",
 });
 
+// Automatically inject JWT authorization token if saved
+API.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Unwrap { success, data, message } envelope — keeps all callers simple
 API.interceptors.response.use(
   (response) => {
@@ -44,15 +56,20 @@ export const resumeAPI = {
 
 // ================= INTERVIEW API =================
 export const interviewAPI = {
-  generate:     (payload) => API.post("/generate-interview", payload),
-  submit:       (payload) => API.post("/submit-interview", payload),
-  placement:    (payload) => API.post("/placement-analysis", payload),
-  roadmap:      (payload) => API.post("/generate-roadmap", payload),
-  analyzeFrame: (payload) =>
-    API.post("/proctoring/analyze-events", payload, {
+  generate:       (payload) => API.post("/generate-interview", payload),
+  submit:         (payload) => API.post("/submit-interview", payload),
+  placement:      (payload) => API.post("/placement-analysis", payload),
+  roadmap:        (payload) => API.post("/generate-roadmap", payload),
+  start:          (payload) => API.post("/interview/start", payload),
+  submitAnswer:   (payload) => API.post("/interview/answer", payload),
+  getReport:      (sessionId) => API.get(`/interview/report/${sessionId}`),
+  getPDFReportUrl:(sessionId) => `${API.defaults.baseURL}/interview/report/${sessionId}/pdf`,
+  analyzeFrame:   (payload) =>
+    API.post("/proctoring/analyze-frame", payload, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
 };
+
 
 // ================= DAILY CHALLENGE API =================
 export const dailyAPI = {
@@ -61,7 +78,7 @@ export const dailyAPI = {
 
 // ================= APTITUDE API =================
 export const aptitudeAPI = {
-  getTest:    () => API.get("/aptitude-test"),
+  getTest:    (domain) => API.get("/aptitude-test", { params: { domain } }),
   submitTest: (payload) => API.post("/submit-aptitude", payload),
 };
 

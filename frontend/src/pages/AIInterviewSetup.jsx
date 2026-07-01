@@ -20,15 +20,27 @@ function AIInterviewSetup() {
       setLoading(true);
       setError("");
 
-      const response = await interviewAPI.generate({ skills: analysisData.detected_skills });
+      const payload = {
+        email: localStorage.getItem("user_email") || "candidate@neuropath.ai",
+        name: localStorage.getItem("user_name") || "Candidate",
+        skills: analysisData.detected_skills,
+        experience: analysisData.experience || [],
+        projects: analysisData.projects || []
+      };
+
+      const response = await interviewAPI.start(payload);
 
       navigate("/ai-interview/live", {
         state: {
-          skills: response.data.skills,
-          questions: response.data.questions,
+          session_id: response.data.session_id,
+          role: response.data.role,
+          level: response.data.level,
+          blueprint: response.data.blueprint,
+          first_question: response.data.first_question,
           resumeName: "My Resume",
         },
       });
+
     } catch (err) {
       console.error(err);
       setError("Failed to start AI interview.");

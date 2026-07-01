@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 
 import Home from "./pages/Home";
@@ -16,14 +16,19 @@ import AptitudeTest from "./pages/AptitudeTest";
 import AIInterview from "./pages/AIInterview";
 import AIInterviewLive from "./pages/AIInterviewLive";
 import InterviewResult from "./pages/InterviewResult";
+import InterviewReport from "./pages/InterviewReport";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import FloatingAssistant from "./components/FloatingAssistant";
 
+
 function App() {
+  const location = useLocation();
+  const isLiveInterview = location.pathname === "/ai-interview/live";
+
   return (
     <>
-      <Navbar />
+      {!isLiveInterview && <Navbar />}
 
       <Routes>
         {/* ================= PUBLIC ROUTES ================= */}
@@ -78,6 +83,16 @@ function App() {
           }
         />
 
+        <Route
+          path="/interview-report"
+          element={
+            <ProtectedRoute>
+              <InterviewReport />
+            </ProtectedRoute>
+          }
+        />
+
+
         {/* ================= OTHER FEATURES ================= */}
         <Route
           path="/placement"
@@ -127,7 +142,7 @@ function App() {
         {/* ================= FALLBACK ================= */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <FloatingAssistant />
+      {!isLiveInterview && <FloatingAssistant />}
     </>
   );
 }

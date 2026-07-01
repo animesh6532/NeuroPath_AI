@@ -5,7 +5,7 @@
   bottom: 30px;
   right: 30px;
   z-index: 9999;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -15,10 +15,10 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6c63ff, #3f3d56);
-  border: 2px solid rgba(108, 99, 255, 0.4);
-  box-shadow: 0 0 20px rgba(108, 99, 255, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: linear-gradient(135deg, #446A9C, #1A3F75);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(26, 63, 117, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  color: #E8F3FF;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -28,7 +28,7 @@
 
 .assistant-toggle-btn:hover {
   transform: scale(1.1);
-  box-shadow: 0 0 30px rgba(108, 99, 255, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 30px rgba(26, 63, 117, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .assistant-toggle-btn svg {
@@ -42,15 +42,15 @@
   width: 380px;
   height: 550px;
   margin-bottom: 20px;
-  background: rgba(20, 20, 30, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(108, 99, 255, 0.2);
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(30px) saturate(160%);
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(108, 99, 255, 0.1);
+  box-shadow: var(--glass-shadow);
   transform-origin: bottom right;
   animation: slideUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
@@ -69,8 +69,8 @@
 /* Header */
 .chat-header {
   padding: 16px 20px;
-  background: rgba(108, 99, 255, 0.15);
-  border-bottom: 1px solid rgba(108, 99, 255, 0.2);
+  background: rgba(255, 255, 255, 0.45);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -85,10 +85,10 @@
 .ai-avatar {
   width: 35px;
   height: 35px;
-  background: linear-gradient(135deg, #8a2be2, #4169e1);
+  background: linear-gradient(135deg, #446A9C, #1A3F75);
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 10px rgba(138, 43, 226, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 10px rgba(26, 63, 117, 0.15);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -97,12 +97,12 @@
 .ai-avatar svg {
   width: 20px;
   height: 20px;
-  fill: #fff;
+  fill: #E8F3FF;
 }
 
 .chat-title h3 {
   margin: 0;
-  color: #fff;
+  color: var(--color-dark-blue);
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -111,7 +111,7 @@
 .chat-title p {
   margin: 2px 0 0;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
 }
 
 .header-controls {
@@ -119,10 +119,10 @@
   gap: 12px;
 }
 
-.icon-btn {
+.chat-header .icon-btn {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -132,19 +132,20 @@
   transition: all 0.2s;
 }
 
-.icon-btn:hover {
-  color: #fff;
-  background: rgba(108, 99, 255, 0.2);
+.chat-header .icon-btn:hover {
+  color: var(--color-dark-blue);
+  background: rgba(26, 63, 117, 0.08);
 }
 
-.icon-btn svg {
+.chat-header .icon-btn svg {
   width: 18px;
   height: 18px;
   fill: currentColor;
 }
 
-.icon-btn.active {
-  color: #6c63ff;
+.chat-header .icon-btn.active {
+  color: var(--color-navy);
+  background: rgba(26, 63, 117, 0.12);
 }
 
 /* Chat Body */
@@ -156,7 +157,7 @@
   flex-direction: column;
   gap: 16px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(108, 99, 255, 0.5) transparent;
+  scrollbar-color: rgba(26, 63, 117, 0.2) transparent;
 }
 
 .chat-body::-webkit-scrollbar {
@@ -166,7 +167,7 @@
   background: transparent;
 }
 .chat-body::-webkit-scrollbar-thumb {
-  background: rgba(108, 99, 255, 0.5);
+  background: rgba(26, 63, 117, 0.15);
   border-radius: 10px;
 }
 
@@ -190,20 +191,21 @@
   border-radius: 18px;
   font-size: 14px;
   line-height: 1.5;
-  color: #fff;
   word-wrap: break-word;
 }
 
 .message.user {
-  background: linear-gradient(135deg, #6c63ff, #8a2be2);
+  background: linear-gradient(135deg, #446A9C, #1A3F75);
   border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3);
+  color: #E8F3FF;
+  box-shadow: 0 4px 12px rgba(26, 63, 117, 0.12);
 }
 
 .message.bot {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--glass-border);
   border-bottom-left-radius: 4px;
+  color: var(--color-navy);
 }
 
 .message-actions {
@@ -216,16 +218,18 @@
 .action-btn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
+  font-size: 12px;
+  gap: 4px;
   transition: color 0.2s;
 }
 
 .action-btn:hover {
-  color: #6c63ff;
+  color: var(--color-navy);
 }
 
 .action-btn svg {
@@ -248,9 +252,9 @@
 
 .chip {
   white-space: nowrap;
-  background: rgba(108, 99, 255, 0.1);
-  border: 1px solid rgba(108, 99, 255, 0.3);
-  color: #d1d0ff;
+  background: rgba(68, 106, 156, 0.08);
+  border: 1px solid rgba(68, 106, 156, 0.25);
+  color: var(--color-navy);
   padding: 8px 14px;
   border-radius: 16px;
   font-size: 12px;
@@ -259,17 +263,17 @@
 }
 
 .chip:hover {
-  background: rgba(108, 99, 255, 0.3);
-  color: #fff;
-  border-color: rgba(108, 99, 255, 0.6);
+  background: rgba(68, 106, 156, 0.18);
+  color: var(--color-dark-blue);
+  border-color: rgba(68, 106, 156, 0.5);
   transform: translateY(-2px);
 }
 
 /* Input Area */
 .chat-footer {
   padding: 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(108, 99, 255, 0.1);
+  background: rgba(255, 255, 255, 0.45);
+  border-top: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -277,51 +281,52 @@
 
 .chat-input {
   flex: 1;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--glass-border);
   border-radius: 20px;
   padding: 12px 16px;
-  color: #fff;
+  color: var(--color-dark-blue);
   font-size: 14px;
   outline: none;
   transition: border-color 0.3s, background 0.3s;
 }
 
 .chat-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(26, 63, 117, 0.45);
 }
 
 .chat-input:focus {
-  border-color: rgba(108, 99, 255, 0.6);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--color-navy);
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .send-btn {
-  background: linear-gradient(135deg, #6c63ff, #8a2be2);
-  border: none;
+  background: linear-gradient(135deg, #446A9C, #1A3F75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   width: 40px;
   height: 40px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  color: #fff;
+  color: #E8F3FF;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 10px rgba(108, 99, 255, 0.3);
+  box-shadow: 0 4px 10px rgba(26, 63, 117, 0.15);
 }
 
 .send-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(108, 99, 255, 0.5);
+  box-shadow: 0 6px 15px rgba(26, 63, 117, 0.25);
 }
 
 .send-btn:disabled {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.3);
+  background: rgba(26, 63, 117, 0.08);
+  color: var(--text-muted);
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
+  border-color: transparent;
 }
 
 .send-btn svg {
@@ -336,7 +341,8 @@
   display: flex;
   gap: 4px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--glass-border);
   border-radius: 18px;
   border-bottom-left-radius: 4px;
   width: fit-content;
@@ -345,7 +351,7 @@
 .dot {
   width: 6px;
   height: 6px;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--color-medium-blue);
   border-radius: 50%;
   animation: typingBounce 1.4s infinite ease-in-out both;
 }
@@ -370,7 +376,7 @@
 .wave {
   width: 2px;
   height: 4px;
-  background-color: #6c63ff;
+  background-color: var(--color-medium-blue);
   border-radius: 1px;
   animation: wavePulse 1s infinite ease-in-out;
 }

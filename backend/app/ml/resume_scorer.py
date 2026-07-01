@@ -1,4 +1,4 @@
-from backend.app.ml.skill_data import SKILL_DATA
+from app.ml.skill_data import SKILL_DATA
 
 def calculate_resume_score(skills, top_career, missing_skills):
 

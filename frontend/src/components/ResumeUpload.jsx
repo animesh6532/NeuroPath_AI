@@ -2,11 +2,14 @@ import { useState, useRef, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { resumeAPI } from "../api/endpoints";
 import { AppContext } from "../context/AppContext";
+import { FileUp, FileText, Loader2, AlertCircle } from "lucide-react";
+import { GlassButton } from "./ui/DesignSystem";
 import "./ResumeUpload.css";
 
 const ResumeUpload = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [progressText, setProgressText] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const fileInputRef = useRef(null);
@@ -22,8 +25,16 @@ const ResumeUpload = () => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    if (selectedFile.type !== "application/pdf") {
-      setError("Please select a PDF file only.");
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "image/png",
+      "image/jpeg",
+      "image/jpg"
+    ];
+
+    if (!allowedTypes.includes(selectedFile.type) && !selectedFile.name.endsWith(".docx")) {
+      setError("Please select a supported file (PDF, DOCX, PNG, or JPG/JPEG).");
       setFile(null);
       return;
     }
@@ -37,17 +48,32 @@ const ResumeUpload = () => {
     e.preventDefault();
 
     if (!file) {
-      setError("Please select a PDF resume first.");
+      setError("Please select a resume file first.");
       return;
     }
 
     setLoading(true);
     setError("");
     setSuccess("");
+    setProgressText("Reading document text...");
+
+    const steps = [
+      "Segmenting sections & extracting personal metadata...",
+      "Normalizing skills & matching certifications...",
+      "Classifying career domains...",
+      "Running multi-factor semantic matching...",
+      "Compiling readiness scores & roadmaps..."
+    ];
+    let stepIdx = 0;
+    const progressInterval = setInterval(() => {
+      if (stepIdx < steps.length) {
+        setProgressText(steps[stepIdx]);
+        stepIdx++;
+      }
+    }, 1100);
 
     try {
       const response = await resumeAPI.analyze(file);
-
       console.log("Resume Analysis Response:", response.data);
 
       setAnalysisData(response.data);
@@ -72,44 +98,61 @@ const ResumeUpload = () => {
       console.error("Resume upload error:", err);
       setError(
         err?.response?.data?.detail ||
-          "Failed to analyze resume. Please try again."
+          "Failed to analyze resume. Please verify the document format."
       );
     } finally {
+      clearInterval(progressInterval);
       setLoading(false);
+      setProgressText("");
     }
   };
 
   return (
     <div className="resume-upload-container">
-      <form className="upload-card" onSubmit={handleAnalyze}>
+      <form className="upload-card glass-card" onSubmit={handleAnalyze}>
         <div className="upload-header">
-          <h2>Resume Upload</h2>
-          <p>Upload your PDF resume to get AI-powered analysis</p>
+          <span className="glass-badge">Parser Service</span>
+          <h2>Resume Analyzer</h2>
+          <p className="text-small">Upload your resume to initialize AI-driven career matching</p>
         </div>
 
         <input
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept="application/pdf"
+          accept=".pdf,.docx,.png,.jpg,.jpeg"
           style={{ display: "none" }}
           disabled={loading}
         />
 
-        <div className="upload-box" onClick={handleClick}>
-          <div className="upload-icon">📎</div>
+        <div className={`upload-box ${file ? "has-file" : ""}`} onClick={handleClick}>
+          <div className="upload-icon-container">
+            {file ? <FileText size={28} className="text-secondary" /> : <FileUp size={28} className="text-secondary" />}
+          </div>
           <p className="upload-text">
-            {file ? file.name : "Click to select PDF resume"}
+            {file ? file.name : "Click to select resume file"}
           </p>
-          <p className="upload-hint">PDF files only</p>
+          <p className="upload-hint text-small">PDF, DOCX, PNG, JPG, JPEG supported</p>
         </div>
 
-        <button type="submit" className="upload-button" disabled={loading}>
-          {loading ? "Analyzing..." : "Analyze Resume"}
-        </button>
+        <GlassButton type="submit" primary className="upload-button" disabled={loading}>
+          {loading ? "Processing..." : "Analyze Resume"}
+        </GlassButton>
 
-        {error && <div className="upload-error">{error}</div>}
-        {success && <div className="upload-success">{success}</div>}
+        {loading && (
+          <div className="upload-progress-loader glass-card">
+            <Loader2 size={24} className="spinner icon-spin" />
+            <p className="progress-text text-small">{progressText}</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="upload-error text-small">
+            <AlertCircle size={14} style={{ marginRight: "6px" }} />
+            {error}
+          </div>
+        )}
+        {success && <div className="upload-success text-small">{success}</div>}
       </form>
     </div>
   );

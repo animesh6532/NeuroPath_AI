@@ -1,11 +1,16 @@
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
-import StatCard from "../components/StatCard";
+import { motion } from "framer-motion";
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ChartTooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from "recharts";
+import { 
+  Award, FileText, CheckCircle2, TrendingUp, Flame, 
+  BookOpen, Play, Calendar, Star, Code, Users, Briefcase, Activity
+} from "lucide-react";
+import { GlassCard, GlassButton, GlassBadge, GlassMetric } from "../components/ui/DesignSystem";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -17,277 +22,347 @@ function Dashboard() {
     aptitudeResult,
     recentUpload,
     resumeHistory,
+    userProfile,
+    roadmapProgress,
   } = useContext(AppContext);
   const navigate = useNavigate();
 
   if (!analysisData) {
     return (
-      <div className="dashboard-page">
-        <div className="dashboard-empty">
-          <h2>No Data Found</h2>
-          <p>Please upload your resume first to build your dashboard.</p>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="page-container dashboard-page empty"
+        style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "65vh", paddingTop: "140px" }}
+      >
+        <div className="glass-card empty-card" style={{ maxWidth: "500px", textAlign: "center", padding: "40px" }}>
+          <FileText size={40} className="text-secondary" style={{ marginBottom: "20px", margin: "0 auto" }} />
+          <h2>No Candidate Data</h2>
+          <p className="text-small">Please upload and parse your resume profile to compute analytics dashboard reports.</p>
+          <GlassButton primary onClick={() => navigate("/resume")} style={{ marginTop: "20px" }}>
+            Upload Resume
+          </GlassButton>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
-  // Safe destructuring with defaults so nothing crashes if keys are missing
   const resume_score = analysisData?.resume_score ?? 0;
   const best_domain = analysisData?.best_domain ?? "General";
-
   const interview_score = interviewData?.score ?? "N/A";
   const confidence = interviewData?.confidence ?? "N/A";
   const communication = interviewData?.communication ?? "N/A";
-
   const streak = codingProgress?.streak ?? 0;
-  const isTechnical = best_domain === "Technology";
+  const solvedCount = codingProgress?.solvedCount ?? 0;
 
-  // Learning progress from roadmap progress checkboxes
-  let savedProgress = {};
-  try {
-    const raw = localStorage.getItem("roadmap_progress");
-    savedProgress = raw ? JSON.parse(raw) : {};
-  } catch {}
-  const completedSteps = Object.values(savedProgress).filter(Boolean).length;
+  const isTechnical = best_domain.toLowerCase().includes("tech") || 
+                      best_domain.toLowerCase().includes("software") || 
+                      best_domain.toLowerCase().includes("engineer") ||
+                      best_domain.toLowerCase().includes("developer") ||
+                      best_domain.toLowerCase().includes("coding");
 
-  const safeRoadmap = Array.isArray(roadmapData) ? roadmapData : [];
+  // Profile completeness calculation
+  const getProfileCompleteness = () => {
+    if (!userProfile) return 10;
+    let filled = 0;
+    const fields = ["name", "bio", "profile_image", "cover_image", "email"];
+    fields.forEach(field => {
+      if (userProfile[field] && String(userProfile[field]).trim() !== "") {
+        filled++;
+      }
+    });
+    if (Array.isArray(userProfile.custom_skills) && userProfile.custom_skills.length > 0) {
+      filled++;
+    }
+    return Math.round((filled / 6) * 100);
+  };
+
+  // Placement readiness local calculator
+  const getPlacementReadiness = () => {
+    const resScore = resume_score;
+    const intScore = interviewData?.score || 0;
+    const codScore = solvedCount > 0 ? 100 : 0;
+    const aptScore = aptitudeResult?.accuracy || 0;
+    const profComp = getProfileCompleteness();
+
+    // Block calculation if essential prerequisites are missing
+    if (!analysisData || !interviewData || !aptitudeResult) {
+      return "N/A";
+    }
+
+    if (isTechnical) {
+      return Math.round(
+        resScore * 0.20 +
+        intScore * 0.35 +
+        codScore * 0.30 +
+        aptScore * 0.10 +
+        profComp * 0.05
+      );
+    } else {
+      return Math.round(
+        resScore * 0.30 +
+        intScore * 0.40 +
+        aptScore * 0.25 +
+        profComp * 0.05
+      );
+    }
+  };
+
+  const completedSteps = Object.values(roadmapProgress || {}).filter(Boolean).length;
+
+  const safeRoadmap = Array.isArray(roadmapData)
+    ? roadmapData
+    : (Array.isArray(roadmapData?.milestones) ? roadmapData.milestones : []);
   let totalRoadmapSteps = 0;
   safeRoadmap.forEach((module) => {
     totalRoadmapSteps += Array.isArray(module.steps) ? module.steps.length : 0;
   });
-  const progressPercent =
-    totalRoadmapSteps > 0
-      ? Math.round((completedSteps / totalRoadmapSteps) * 100)
-      : 0;
+  const progressPercent = totalRoadmapSteps > 0 ? Math.round((completedSteps / totalRoadmapSteps) * 100) : 0;
 
   const pieData = [
-    { name: "Completed", value: progressPercent, color: "#3b82f6" },
-    { name: "Remaining", value: 100 - progressPercent, color: "#1e293b" },
+    { name: "Completed", value: progressPercent, color: "var(--color-navy)" },
+    { name: "Remaining", value: 100 - progressPercent, color: "rgba(26, 63, 117, 0.12)" },
   ];
 
   const mockGraphData = [
     { day: "Mon", solved: 1 },
-    { day: "Tue", solved: Math.floor((codingProgress?.solvedCount ?? 0) / 3) || 1 },
+    { day: "Tue", solved: Math.floor((solvedCount) / 3) || 1 },
     { day: "Wed", solved: 2 },
-    { day: "Thu", solved: Math.floor((codingProgress?.solvedCount ?? 0) / 2) || 1 },
-    { day: "Today", solved: codingProgress?.solvedCount ?? 0 },
+    { day: "Thu", solved: Math.floor((solvedCount) / 2) || 1 },
+    { day: "Today", solved: solvedCount },
   ];
 
+  // Dynamic Recent Activity Compiled
+  const recentActivities = [];
+  if (analysisData) {
+    recentActivities.push({
+      id: 1,
+      text: `Resume profile analyzed targeting ${best_domain}.`,
+      desc: `ATS Compatibility scored at ${resume_score}%`,
+      icon: FileText
+    });
+  }
+  if (interviewData) {
+    recentActivities.push({
+      id: 2,
+      text: `AI Voice Interview completed.`,
+      desc: `Evaluated technical depth at ${interview_score}%`,
+      icon: CheckCircle2
+    });
+  }
+  if (solvedCount > 0) {
+    recentActivities.push({
+      id: 3,
+      text: `Daily coding challenges updated.`,
+      desc: `Solved ${solvedCount} total compiler issues`,
+      icon: Code
+    });
+  }
+  if (aptitudeResult) {
+    recentActivities.push({
+      id: 4,
+      text: `Cognitive aptitude test completed.`,
+      desc: `Scored ${aptitudeResult.score}/${aptitudeResult.total} (${Math.round(aptitudeResult.accuracy)}% accuracy)`,
+      icon: Award
+    });
+  }
+
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-header">
-        <h1>Overview Dashboard</h1>
-        <p>Your centralised AI-driven career analytics</p>
-        {recentUpload && <span className="recent-file">📄 {recentUpload}</span>}
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="page-container dashboard-page"
+      style={{ paddingTop: "140px", paddingBottom: "60px" }}
+    >
+      {/* Header */}
+      <div className="dashboard-header glass-card-v6" style={{ background: "var(--glass-bg)", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "28px 32px", borderRadius: "24px", border: "1px solid var(--glass-border)" }}>
+        <div>
+          <span className="glass-badge">Career OS Portal</span>
+          <h1 style={{ fontSize: "2rem", marginTop: "6px", color: "var(--color-dark-blue)" }}>Overview Dashboard</h1>
+          <p className="text-small" style={{ margin: "4px 0 0 0", color: "var(--text-secondary)" }}>Centralized intelligence & readiness analytics</p>
+        </div>
+        <div className="header-actions">
+          {recentUpload && (
+            <GlassBadge status="secondary">
+              <FileText size={12} style={{ marginRight: "4px" }} />
+              {recentUpload}
+            </GlassBadge>
+          )}
+        </div>
       </div>
 
-      <div
-        className="dashboard-actions"
-        style={{ display: "flex", gap: "15px", marginBottom: "20px" }}
-      >
-        <button
-          style={{
-            padding: "10px 20px",
-            borderRadius: "8px",
-            border: "1px solid #3b82f6",
-            background: "rgba(59,130,246,0.1)",
-            color: "#60a5fa",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-          onClick={() => navigate("/aptitude-test")}
-        >
-          Take Aptitude Test
-        </button>
-        <button
-          style={{
-            padding: "10px 20px",
-            borderRadius: "8px",
-            border: "none",
-            background: isTechnical ? "#3b82f6" : "#475569",
-            color: isTechnical ? "white" : "#94a3b8",
-            cursor: isTechnical ? "pointer" : "not-allowed",
-            fontWeight: "bold",
-          }}
-          onClick={() => isTechnical && navigate("/daily-coding")}
-          title={!isTechnical ? "Coding challenges available only for technical users" : ""}
+      {/* Quick Actions */}
+      <div className="dashboard-actions-row" style={{ display: "flex", gap: "12px", margin: "24px 0", flexWrap: "wrap" }}>
+        <GlassButton onClick={() => navigate("/aptitude-test")}>
+          <Award size={16} /> Take Aptitude Test
+        </GlassButton>
+        <GlassButton 
+          onClick={() => isTechnical && navigate("/daily-coding")} 
+          primary={isTechnical}
           disabled={!isTechnical}
         >
-          Start Daily Coding
-        </button>
+          <Code size={16} /> Start Daily Coding
+        </GlassButton>
+        <GlassButton onClick={() => navigate("/resume")}>
+          <FileText size={16} /> Re-upload Resume
+        </GlassButton>
       </div>
 
-      <div className="stats-grid">
-        <StatCard title="Resume Score" value={`${resume_score}%`} />
-        <StatCard
-          title="Interview Score"
-          value={interview_score !== "N/A" ? `${interview_score}%` : "N/A"}
+      {/* Stats Cards Grid (Uniform 5 columns) */}
+      <div className="stats-grid-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "16px" }}>
+        <GlassMetric title="Resume Score" value={`${resume_score}%`} icon={FileText} caption="ATS alignment rating" />
+        <GlassMetric 
+          title="Interview Score" 
+          value={interview_score !== "N/A" ? `${interview_score}%` : "N/A"} 
+          icon={CheckCircle2} 
+          caption="Spoken competency score"
         />
-        <StatCard
-          title="Aptitude Score"
-          value={
-            aptitudeResult
-              ? `${aptitudeResult.score ?? 0}/${aptitudeResult.total ?? 0}`
-              : "N/A"
-          }
+        <GlassMetric 
+          title="Coding Score" 
+          value={isTechnical ? `${solvedCount} solved` : "Skipped"} 
+          icon={Code} 
+          caption="IDE submissions count"
         />
-        <StatCard
-          title="Confidence Level"
-          value={confidence !== "N/A" ? `${confidence}%` : "N/A"}
+        <GlassMetric 
+          title="Aptitude Score" 
+          value={aptitudeResult ? `${Math.round(aptitudeResult.accuracy)}%` : "N/A"} 
+          icon={Award} 
+          caption="Quantitative reasoning accuracy"
         />
-        <StatCard
-          title="Communication"
-          value={communication !== "N/A" ? `${communication}%` : "N/A"}
+        <GlassMetric 
+          title="Placement Readiness" 
+          value={getPlacementReadiness() !== "N/A" ? `${getPlacementReadiness()}%` : "N/A"} 
+          icon={TrendingUp} 
+          caption="Aggregate weighted forecaster"
         />
       </div>
 
+      {/* Coding / Streak row if technical */}
       {isTechnical && (
-        <div
-          className="dashboard-section double-col"
-          style={{ marginTop: "20px" }}
-        >
-          <div className="dash-col">
-            <h2>Problems Solved</h2>
-            <div style={{ height: "250px", width: "100%", marginTop: "20px" }}>
+        <div className="dashboard-section double-col" style={{ display: "grid", gridTemplateColumns: "2.4fr 1.6fr", gap: "24px", marginTop: "24px" }}>
+          <GlassCard style={{ padding: "28px" }}>
+            <h3 className="text-title" style={{ fontSize: "1.1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}><Code size={16} /> Python Solution Submissions</h3>
+            <div className="chart-box" style={{ height: "200px" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={mockGraphData}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.1)"
-                    vertical={false}
-                  />
-                  <XAxis dataKey="day" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" allowDecimals={false} />
-                  <Tooltip
-                    cursor={{ fill: "rgba(255,255,255,0.05)" }}
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(26,63,117,0.06)" vertical={false} />
+                  <XAxis dataKey="day" stroke="var(--color-navy)" fontSize={11} tickLine={false} />
+                  <YAxis stroke="var(--color-navy)" fontSize={11} tickLine={false} allowDecimals={false} />
+                  <ChartTooltip 
+                    cursor={{ fill: "rgba(26,63,117,0.05)" }}
                     contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "none",
+                      backgroundColor: "rgba(255, 255, 255, 0.95)",
+                      border: "1px solid var(--glass-border)",
                       borderRadius: "8px",
+                      color: "var(--color-dark-blue)"
                     }}
                   />
-                  <Bar dataKey="solved" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="solved" fill="var(--color-medium-blue)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
-          <div
-            className="dash-col"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <h2>Coding Streak</h2>
-            <div
-              style={{
-                fontSize: "72px",
-                fontWeight: "bold",
-                color: "#f59e0b",
-                textShadow: "0 0 20px rgba(245, 158, 11, 0.4)",
-              }}
-            >
-              {streak} 🔥
+          </GlassCard>
+          
+          <GlassCard style={{ padding: "28px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+            <h3 className="text-title" style={{ fontSize: "1.1rem", marginBottom: "16px", width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}><Flame size={16} /> Coding Streak</h3>
+            <div className="streak-badge-container" style={{ margin: "auto 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <Flame size={64} className="streak-icon" style={{ color: "var(--color-medium-blue)", filter: "drop-shadow(0 4px 12px rgba(68,106,156,0.2))" }} />
+              <div className="streak-count" style={{ fontSize: "2.5rem", fontWeight: "800", fontFamily: "var(--font-display)", color: "var(--color-dark-blue)" }}>{streak}</div>
             </div>
-            <p style={{ color: "#94a3b8", marginTop: "10px", fontSize: "18px" }}>
-              Days in a row
-            </p>
-          </div>
+            <p className="text-small" style={{ color: "var(--text-muted)", margin: "8px 0 0 0" }}>Consecutive Days Active</p>
+          </GlassCard>
         </div>
       )}
 
-      <div
-        className="dashboard-section double-col"
-        style={{ marginTop: "20px" }}
-      >
-        <div className="dash-col">
-          <h2>Learning Progress</h2>
+      {/* Progress, Career Matches, & Activity logs Row */}
+      <div className="dashboard-section triple-col" style={{ display: "grid", gridTemplateColumns: "1.2fr 1.4fr 1.4fr", gap: "24px", marginTop: "24px" }}>
+        
+        {/* Roadmap Progress */}
+        <GlassCard style={{ padding: "28px" }}>
+          <h3 className="text-title" style={{ fontSize: "1.1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}><BookOpen size={16} /> Roadmap Progress</h3>
           {totalRoadmapSteps > 0 ? (
-            <div
-              style={{
-                height: "250px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <ResponsiveContainer width="100%" height="80%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(val) => `${val}%`} />
-                </PieChart>
-              </ResponsiveContainer>
-              <h3 style={{ margin: 0, color: "#e2e8f0" }}>
-                {progressPercent}% Completed
-              </h3>
-              <p
-                style={{
-                  color: "#94a3b8",
-                  fontSize: "14px",
-                  marginTop: "5px",
-                }}
-              >
-                {completedSteps} out of {totalRoadmapSteps} roadmap steps
-              </p>
+            <div className="progress-radial-box" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", minHeight: "180px" }}>
+              <div className="chart-radial" style={{ width: "120px", height: "120px" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={42}
+                      outerRadius={54}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip formatter={(val) => `${val}%`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <h4 style={{ margin: "8px 0 2px 0", color: "var(--color-dark-blue)", fontSize: "1.05rem" }}>{progressPercent}% Achieved</h4>
+              <p className="text-caption" style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: 0 }}>{completedSteps} of {totalRoadmapSteps} targets</p>
             </div>
           ) : (
-            <p className="empty-text">
-              No roadmap generated yet. Complete an interview to get your
-              learning path.
-            </p>
+            <div className="empty-sub-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "180px", color: "var(--text-secondary)" }}>
+              <BookOpen size={28} className="text-muted" style={{ marginBottom: "12px" }} />
+              <p className="text-small" style={{ margin: 0, textAlign: "center" }}>Complete your roadmap training milestones.</p>
+            </div>
           )}
-        </div>
+        </GlassCard>
 
-        <div className="dash-col">
-          <h2>Resume Upload History</h2>
-          {resumeHistory && resumeHistory.length > 0 ? (
-            <div className="history-table-wrapper">
-              <table className="history-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Score</th>
-                    <th>Top Career</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resumeHistory.slice(0, 5).map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.date}</td>
-                      <td>
-                        <span className="score-badge">{item.score}%</span>
-                      </td>
-                      <td>{item.career}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {resumeHistory.length > 5 && (
-                <p className="history-note">Showing last 5 uploads.</p>
-              )}
+        {/* Top Career Matches */}
+        <GlassCard style={{ padding: "28px" }}>
+          <h3 className="text-title" style={{ fontSize: "1.1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}><TrendingUp size={16} /> Top Career Matches</h3>
+          {analysisData.top_careers?.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {analysisData.top_careers.slice(0, 4).map((c, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "rgba(255, 255, 255, 0.4)", borderRadius: "12px", border: "1px solid var(--glass-border)" }}>
+                  <span style={{ fontWeight: "600", color: "var(--color-navy)", fontSize: "0.9rem" }}>{c.career}</span>
+                  <GlassBadge status="success">{c.score}% Match</GlassBadge>
+                </div>
+              ))}
             </div>
           ) : (
-            <p className="empty-text">
-              No history found. Upload your first resume!
-            </p>
+            <div className="empty-sub-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "180px" }}>
+              <TrendingUp size={28} className="text-muted" style={{ marginBottom: "12px" }} />
+              <p className="text-small" style={{ margin: 0, textAlign: "center" }}>Career matches will be displayed here.</p>
+            </div>
           )}
-        </div>
+        </GlassCard>
+
+        {/* Recent Activity Log */}
+        <GlassCard style={{ padding: "28px" }}>
+          <h3 className="text-title" style={{ fontSize: "1.1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}><Activity size={16} /> Recent Activity</h3>
+          {recentActivities.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {recentActivities.map((act) => {
+                const Icon = act.icon;
+                return (
+                  <div key={act.id} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                    <div style={{ padding: "8px", background: "rgba(68, 106, 156, 0.08)", borderRadius: "8px", color: "var(--color-medium-blue)", flexShrink: 0 }}>
+                      <Icon size={16} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: "0.9rem", color: "var(--color-dark-blue)", fontWeight: "600" }}>{act.text}</h4>
+                      <p className="text-small" style={{ margin: "2px 0 0 0", color: "var(--text-secondary)", fontSize: "0.75rem" }}>{act.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="empty-sub-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "180px" }}>
+              <Activity size={28} className="text-muted" style={{ marginBottom: "12px" }} />
+              <p className="text-small" style={{ margin: 0, textAlign: "center" }}>No activity logs recorded yet.</p>
+            </div>
+          )}
+        </GlassCard>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

@@ -1,0 +1,246 @@
+###############################################################################
+# NeuroPath AI
+# Production .gitignore
+###############################################################################
+
+############################
+# Operating System
+############################
+.DS_Store
+Thumbs.db
+desktop.ini
+Icon?
+ehthumbs.db
+
+############################
+# Python
+############################
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+############################
+# Virtual Environment
+############################
+venv/
+.venv/
+env/
+ENV/
+virtualenv/
+
+############################
+# Environment Variables
+############################
+.env
+.env.*
+!.env.example
+
+############################
+# Python Tooling
+############################
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
+
+############################
+# FastAPI
+############################
+*.log
+logs/
+uvicorn.log
+
+############################
+# SQLite
+############################
+*.sqlite
+*.sqlite3
+*.db
+
+############################
+# Node
+############################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+############################
+# Vite
+############################
+frontend/dist/
+dist/
+
+############################
+# Build
+############################
+build/
+out/
+release/
+debug/
+
+############################
+# IDE
+############################
+.vscode/*
+!.vscode/extensions.json
+
+.idea/
+*.iml
+
+############################
+# Git
+############################
+.git/
+.gitignore.bak
+
+############################
+# Mac
+############################
+.AppleDouble
+.LSOverride
+
+############################
+# Windows
+############################
+$RECYCLE.BIN/
+
+############################
+# Linux
+############################
+*~
+
+############################
+# Temporary Files
+############################
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+############################
+# Jupyter
+############################
+.ipynb_checkpoints/
+
+############################
+# PyCharm
+############################
+.idea/
+
+############################
+# VS Code Testing
+############################
+.history/
+
+############################
+# Coverage
+############################
+coverage/
+coverage.xml
+
+############################
+# TensorFlow / PyTorch
+############################
+checkpoints/
+runs/
+wandb/
+lightning_logs/
+tensorboard/
+events.out.tfevents.*
+
+############################
+# Model Weights
+############################
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.pb
+
+############################
+# OpenCV
+############################
+captures/
+recordings/
+frames/
+videos/
+
+############################
+# Generated Reports
+############################
+reports/
+generated_reports/
+evaluation_reports/
+
+############################
+# Resume Uploads
+############################
+uploads/
+temp_uploads/
+
+############################
+# AI Generated Files
+############################
+generated/
+cache/
+embeddings/
+vector_store/
+faiss_index/
+chroma_db/
+index_store/
+
+############################
+# API Keys
+############################
+secrets.json
+credentials.json
+service_account.json
+
+############################
+# Logs
+############################
+*.log
+
+############################
+# Archives
+############################
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+
+############################
+# Misc
+############################
+*.bak
+*.old
+*.orig
+
+###############################################################################
+# Keep Important Files
+###############################################################################
+
+!README.md
+!LICENSE
+!requirements.txt
+!package.json
+!package-lock.json
+!vite.config.js
+!vite.config.ts
+!tsconfig.json
+!Dockerfile
+!docker-compose.yml
+!backend/app/**
+!frontend/src/**
+!frontend/public/**

@@ -1,54 +1,267 @@
 import random
+import json
+from datetime import datetime
+from sqlalchemy.orm import Session
+from app.db.models import AptitudeQuestion, AptitudeAttempt
 
-APTITUDE_QUESTIONS = [
-    {"question": "What is the next number in the series: 2, 6, 12, 20, 30, ...?", "options": ["40", "42", "44", "48"], "correct_answer": "42"},
-    {"question": "If a train 120 meters long passes a telegraph pole in 6 seconds, find the speed of the train.", "options": ["60 km/hr", "72 km/hr", "80 km/hr", "85 km/hr"], "correct_answer": "72 km/hr"},
-    {"question": "The sum of ages of 5 children born at the intervals of 3 years each is 50 years. What is the age of the youngest child?", "options": ["4 years", "8 years", "10 years", "None of these"], "correct_answer": "4 years"},
-    {"question": "A father said to his son, 'I was as old as you are at the present at the time of your birth'. If the father's age is 38 years now, the son's age five years back was:", "options": ["14 years", "19 years", "33 years", "38 years"], "correct_answer": "14 years"},
-    {"question": "A grocer has a sale of Rs. 6435, Rs. 6927, Rs. 6855, Rs. 7230 and Rs. 6562 for 5 consecutive months. How much sale must he have in the sixth month so that he gets an average sale of Rs. 6500?", "options": ["Rs. 4991", "Rs. 5991", "Rs. 6001", "Rs. 6991"], "correct_answer": "Rs. 4991"},
-    {"question": "In a certain code language, '134' means 'good and tasty', '478' means 'see good pictures' and '729' means 'pictures are faint'. Which of the following digits stands for 'see'?", "options": ["9", "2", "1", "8"], "correct_answer": "8"},
-    {"question": "Look at this series: 7, 10, 8, 11, 9, 12, ... What number should come next?", "options": ["7", "10", "12", "13"], "correct_answer": "10"},
-    {"question": "A man is 24 years older than his son. In two years, his age will be twice the age of his son. The present age of his son is:", "options": ["14 years", "18 years", "20 years", "22 years"], "correct_answer": "22 years"},
-    {"question": "What is the probability of getting a sum 9 from two throws of a dice?", "options": ["1/6", "1/8", "1/9", "1/12"], "correct_answer": "1/9"},
-    {"question": "Find the odd one out: 3, 5, 11, 14, 17, 21", "options": ["21", "17", "14", "3"], "correct_answer": "14"},
-    {"question": "If A is the brother of B; B is the sister of C; and C is the father of D, how D is related to A?", "options": ["Brother", "Sister", "Nephew", "Cannot be determined"], "correct_answer": "Cannot be determined"},
-    {"question": "Pointing to a photograph of a boy Suresh said, 'He is the son of the only son of my mother.' How is Suresh related to that boy?", "options": ["Brother", "Uncle", "Cousin", "Father"], "correct_answer": "Father"},
-    {"question": "A train running at the speed of 60 km/hr crosses a pole in 9 seconds. What is the length of the train?", "options": ["120 metres", "180 metres", "324 metres", "150 metres"], "correct_answer": "150 metres"},
-    {"question": "The angle between the minute hand and the hour hand of a clock when the time is 4:20, is:", "options": ["0 degrees", "10 degrees", "5 degrees", "20 degrees"], "correct_answer": "10 degrees"},
-    {"question": "Two numbers are respectively 20% and 50% more than a third number. The ratio of the two numbers is:", "options": ["2:5", "3:5", "4:5", "6:7"], "correct_answer": "4:5"},
-    {"question": "A sum of money at simple interest amounts to Rs. 815 in 3 years and to Rs. 854 in 4 years. The sum is:", "options": ["Rs. 650", "Rs. 690", "Rs. 698", "Rs. 700"], "correct_answer": "Rs. 698"},
-    {"question": "Evaluate: (0.00032)^(2/5)", "options": ["0.04", "0.4", "0.004", "0.0004"], "correct_answer": "0.04"},
-    {"question": "Find the greatest number that will divide 43, 91 and 183 so as to leave the same remainder in each case.", "options": ["4", "7", "9", "13"], "correct_answer": "4"},
-    {"question": "3 pumps, working 8 hours a day, can empty a tank in 2 days. How many hours a day must 4 pumps work to empty the tank in 1 day?", "options": ["9", "10", "11", "12"], "correct_answer": "12"},
-    {"question": "If log 2 = 0.3010 and log 3 = 0.4771, the value of log5 512 is:", "options": ["2.870", "2.967", "3.876", "3.912"], "correct_answer": "3.876"},
-    {"question": "A fruit seller had some apples. He sells 40% apples and still has 420 apples. Originally, he had:", "options": ["588 apples", "600 apples", "672 apples", "700 apples"], "correct_answer": "700 apples"},
-    {"question": "Three unbiased coins are tossed. What is the probability of getting at most two heads?", "options": ["3/4", "1/4", "3/8", "7/8"], "correct_answer": "7/8"},
-    {"question": "In a 100 m race, A can give B 10 m and C 28 m. In the same race B can give C:", "options": ["18 m", "20 m", "27 m", "9 m"], "correct_answer": "20 m"},
-    {"question": "The cost price of 20 articles is the same as the selling price of x articles. If the profit is 25%, then the value of x is:", "options": ["15", "16", "18", "25"], "correct_answer": "16"},
-    {"question": "A bag contains 2 red, 3 green and 2 blue balls. Two balls are drawn at random. What is the probability that none of the balls drawn is blue?", "options": ["10/21", "11/21", "2/7", "5/7"], "correct_answer": "10/21"}
-]
+CATEGORY_MAP = {
+    "Quantitative Aptitude": "Quantitative Aptitude",
+    "Logical Reasoning": "Logical Reasoning",
+    "Verbal Ability": "Verbal Ability",
+    "Analytical Thinking": "Analytical Thinking",
+    "Data Interpretation": "Data Interpretation",
+    "Critical Thinking": "Critical Thinking",
+    "Decision Making": "Decision Making",
+    "Pattern Recognition": "Pattern Recognition",
+    "General Intelligence": "General Intelligence",
+    "Situational Judgement": "Situational Judgement"
+}
 
-def generate_aptitude_test(num_questions=20):
-    return random.sample(APTITUDE_QUESTIONS, min(num_questions, len(APTITUDE_QUESTIONS)))
+def get_personalized_weights(domain: str) -> dict:
+    domain_lower = (domain or "General").lower()
+    
+    # Baseline defaults (10% each)
+    weights = {cat: 0.1 for cat in CATEGORY_MAP.keys()}
+    
+    # Software / Engineering / Tech Roles
+    if any(kw in domain_lower for kw in ["software", "tech", "engineer", "developer", "coding", "computer", "cyber", "data", "system"]):
+        weights = {
+            "Quantitative Aptitude": 0.30,
+            "Logical Reasoning": 0.30,
+            "Analytical Thinking": 0.10,
+            "Pattern Recognition": 0.10,
+            "General Intelligence": 0.10,
+            "Situational Judgement": 0.05,
+            "Decision Making": 0.05,
+            "Verbal Ability": 0.0,
+            "Data Interpretation": 0.0,
+            "Critical Thinking": 0.0
+        }
+    # HR / Human Resources / Management
+    elif any(kw in domain_lower for kw in ["hr", "human resource", "recruitment", "talent", "people", "management", "leader", "admin"]):
+        weights = {
+            "Verbal Ability": 0.30,
+            "Situational Judgement": 0.30,
+            "Decision Making": 0.20,
+            "Logical Reasoning": 0.10,
+            "Critical Thinking": 0.10,
+            "Quantitative Aptitude": 0.0,
+            "Analytical Thinking": 0.0,
+            "Data Interpretation": 0.0,
+            "Pattern Recognition": 0.0,
+            "General Intelligence": 0.0
+        }
+    # Finance / Accounting / Banking
+    elif any(kw in domain_lower for kw in ["finance", "account", "bank", "invest", "tax", "audit", "wealth"]):
+        weights = {
+            "Quantitative Aptitude": 0.30,
+            "Data Interpretation": 0.30,
+            "Logical Reasoning": 0.20,
+            "Analytical Thinking": 0.10,
+            "Decision Making": 0.10,
+            "Verbal Ability": 0.0,
+            "Critical Thinking": 0.0,
+            "Pattern Recognition": 0.0,
+            "General Intelligence": 0.0,
+            "Situational Judgement": 0.0
+        }
+    # Teaching / Education
+    elif any(kw in domain_lower for kw in ["teach", "edu", "school", "prof", "lecture", "train", "pedagogy"]):
+        weights = {
+            "Verbal Ability": 0.35,
+            "Logical Reasoning": 0.25,
+            "Situational Judgement": 0.20,
+            "General Intelligence": 0.20,
+            "Quantitative Aptitude": 0.0,
+            "Analytical Thinking": 0.0,
+            "Data Interpretation": 0.0,
+            "Critical Thinking": 0.0,
+            "Decision Making": 0.0,
+            "Pattern Recognition": 0.0
+        }
+        
+    return weights
 
-def evaluate_aptitude_test(user_answers: list):
+def generate_aptitude_test(db: Session, email: str, domain: str = "General", num_questions: int = 20) -> list:
+    """
+    Generates a personalized cognitive aptitude test.
+    - Balances by Difficulty: 20% Easy, 40% Medium, 30% Hard, 10% Expert
+    - Balances by Category: Personalized weights based on career domain
+    - Prevents repetition: Queries history to avoid showing already seen questions.
+    """
+    # 1. Target counts by difficulty
+    diff_targets = {
+        "Easy": max(1, int(num_questions * 0.20)),
+        "Medium": max(1, int(num_questions * 0.40)),
+        "Hard": max(1, int(num_questions * 0.30)),
+        "Expert": max(1, int(num_questions * 0.10))
+    }
+    # Adjust total count to be exactly num_questions
+    current_sum = sum(diff_targets.values())
+    if current_sum != num_questions:
+        diff_targets["Medium"] += (num_questions - current_sum)
+
+    # 2. Get seen question IDs for this user
+    seen_qids = set()
+    if email:
+        attempts = db.query(AptitudeAttempt).filter(AptitudeAttempt.email == email).all()
+        for attempt in attempts:
+            try:
+                qids = json.loads(attempt.question_ids)
+                if isinstance(qids, list):
+                    seen_qids.update(qids)
+            except Exception as e:
+                print(f"[Aptitude Generator] Parse attempt seen IDs error: {e}")
+
+    # 3. Determine category weights
+    cat_weights = get_personalized_weights(domain)
+    active_categories = [cat for cat, w in cat_weights.items() if w > 0]
+    if not active_categories:
+        active_categories = list(CATEGORY_MAP.keys())
+
+    selected_questions = []
+
+    # For each difficulty, select target questions
+    for diff, target_count in diff_targets.items():
+        # Query all questions of this difficulty
+        q_pool = db.query(AptitudeQuestion).filter(AptitudeQuestion.difficulty == diff).all()
+        if not q_pool:
+            # Fallback to any difficulty if this difficulty is empty
+            q_pool = db.query(AptitudeQuestion).all()
+        
+        # Separate into unseen and seen
+        unseen_q = [q for q in q_pool if q.id not in seen_qids]
+        
+        # If unseen is exhausted, reuse seen questions
+        pool_to_use = unseen_q if len(unseen_q) >= target_count else q_pool
+        if not pool_to_use:
+            continue
+
+        # Distribute selection across active categories based on weights
+        diff_selected = []
+        
+        # Group pool by category
+        by_category = {cat: [] for cat in CATEGORY_MAP.keys()}
+        for q in pool_to_use:
+            if q.category in by_category:
+                by_category[q.category].append(q)
+
+        # Draw questions proportionally
+        attempts_draw = 0
+        while len(diff_selected) < target_count and attempts_draw < 100:
+            attempts_draw += 1
+            for cat in active_categories:
+                if len(diff_selected) >= target_count:
+                    break
+                
+                # Check weight probability
+                weight = cat_weights.get(cat, 0.1)
+                if random.random() <= weight or attempts_draw > 5:
+                    cat_list = by_category.get(cat, [])
+                    if cat_list:
+                        chosen = random.choice(cat_list)
+                        if chosen not in diff_selected:
+                            diff_selected.append(chosen)
+                            cat_list.remove(chosen)
+
+        # Fallback: if we still need questions, pull from any category in pool
+        if len(diff_selected) < target_count:
+            flat_pool = [q for cat, list_q in by_category.items() for q in list_q]
+            random.shuffle(flat_pool)
+            for q in flat_pool:
+                if len(diff_selected) >= target_count:
+                    break
+                if q not in diff_selected:
+                    diff_selected.append(q)
+
+        selected_questions.extend(diff_selected)
+
+    # Return structured questions
+    result = []
+    for q in selected_questions:
+        try:
+            opts = json.loads(q.options) if q.options else []
+        except:
+            opts = []
+        result.append({
+            "id": q.id,
+            "question": q.question_text,
+            "category": q.category,
+            "topic": q.topic,
+            "subtopic": q.subtopic,
+            "difficulty": q.difficulty,
+            "options": opts,
+            "correct_answer": q.correct_answer,
+            "explanation": q.explanation
+        })
+
+    random.shuffle(result)
+    return result
+
+def evaluate_aptitude_test(db: Session, email: str, user_answers: list, difficulty_mix: str = "Personalized", category_mix: str = "Personalized", time_taken: int = 1200) -> dict:
+    """
+    Evaluates user answers, tracks concepts, and saves an attempt history record.
+    """
     score = 0
     total = len(user_answers)
-    if total == 0:
-        return {"score": 0, "accuracy": 0}
+    
+    wrong_concepts = set()
+    weak_concepts = set()
+    
+    question_ids = []
+    answers_submitted = {}
 
-    for answer_obj in user_answers:
-        q_text = answer_obj.get("question")
-        user_ans = answer_obj.get("answer")
+    for ans_obj in user_answers:
+        q_id = ans_obj.get("id")
+        q_text = ans_obj.get("question")
+        user_ans = ans_obj.get("answer")
         
-        # Find original question
-        original_q = next((q for q in APTITUDE_QUESTIONS if q["question"] == q_text), None)
-        if original_q and original_q["correct_answer"] == user_ans:
-            score += 1
+        # Query question
+        original_q = None
+        if q_id:
+            original_q = db.query(AptitudeQuestion).filter(AptitudeQuestion.id == q_id).first()
+        if not original_q and q_text:
+            original_q = db.query(AptitudeQuestion).filter(AptitudeQuestion.question_text == q_text).first()
             
-    accuracy = round((score / total) * 100, 2)
+        if original_q:
+            question_ids.append(original_q.id)
+            answers_submitted[str(original_q.id)] = user_ans
+            
+            if original_q.correct_answer == user_ans:
+                score += 1
+            else:
+                wrong_concepts.add(original_q.topic)
+                weak_concepts.add(original_q.category)
+        else:
+            # Fallback if question was not in the new seeder pool (e.g. legacy static fallback)
+            # Find in legacy hardcoded list if present
+            pass
+
+    accuracy = round((score / total) * 100, 2) if total > 0 else 0.0
+
+    # Save attempt in database
+    if email:
+        attempt = AptitudeAttempt(
+            email=email,
+            question_ids=json.dumps(question_ids),
+            answers_submitted=json.dumps(answers_submitted),
+            timestamp=datetime.utcnow().isoformat(),
+            difficulty=difficulty_mix,
+            category=category_mix,
+            score=score,
+            total=total,
+            time_taken=time_taken,
+            wrong_concepts=json.dumps(list(wrong_concepts)),
+            weak_concepts=json.dumps(list(weak_concepts))
+        )
+        db.add(attempt)
+        db.commit()
+        print(f"[Aptitude Evaluator] Saved attempt for '{email}' with score {score}/{total}.")
+
     return {
         "score": score,
         "total": total,
-        "accuracy": accuracy
+        "accuracy": accuracy,
+        "wrong_concepts": list(wrong_concepts),
+        "weak_concepts": list(weak_concepts)
     }

@@ -1,197 +1,220 @@
-.ai-interview-page,
+/* NeuroPath AI - Secure Proctoring Interview Mode Styles */
+
+.live-interview-container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e8f3ff 0%, #c9e1f8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
 .live-interview-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a, #111827);
-  color: white;
-  padding: 40px 20px;
-}
-
-.interview-card,
-.result-card {
-  max-width: 950px;
-  margin: 50px auto;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 36px;
-  border-radius: 24px;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-}
-
-.interview-card h1,
-.result-card h1 {
-  font-size: 2.4rem;
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-
-.subtitle {
-  color: #cbd5e1;
-  font-size: 1.05rem;
-  margin-bottom: 28px;
-}
-
-.feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
-  margin-bottom: 32px;
-}
-
-.feature-box {
-  background: rgba(255, 255, 255, 0.04);
-  padding: 22px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.08);
-  transition: all 0.25s ease;
-}
-
-.feature-box:hover {
-  transform: translateY(-4px);
-  background: rgba(255,255,255,0.06);
-}
-
-.feature-box h3 {
-  margin-bottom: 10px;
-  font-size: 1.1rem;
-}
-
-.feature-box p {
-  color: #cbd5e1;
-  line-height: 1.6;
-}
-
-.upload-section {
-  margin-top: 20px;
-  padding: 24px;
-  border-radius: 18px;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px dashed rgba(99, 102, 241, 0.35);
-  text-align: center;
-}
-
-.upload-section input {
+  grid-template-columns: 1.65fr 1.35fr;
+  gap: 20px;
   width: 100%;
-  padding: 14px;
-  margin-bottom: 18px;
-  border-radius: 12px;
-  border: 1px solid #334155;
-  background: #0f172a;
-  color: white;
-}
-
-.interview-card button,
-.interview-actions button,
-.result-card button {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border: none;
-  padding: 14px 22px;
-  border-radius: 12px;
-  color: white;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 15px;
-  transition: all 0.25s ease;
-}
-
-.interview-card button:hover,
-.interview-actions button:hover,
-.result-card button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(99, 102, 241, 0.3);
-}
-
-.selected-file {
-  margin-bottom: 16px;
-  color: #93c5fd;
-  font-weight: 500;
-}
-
-.error-text {
-  color: #f87171;
-  margin-bottom: 12px;
-}
-
-.live-interview-page {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
+  height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .live-left,
 .live-right {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 28px;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.08);
-}
-
-.question-box {
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  padding: 20px;
-  border-radius: 16px;
-  margin: 20px 0;
-}
-
-textarea {
-  width: 100%;
-  border-radius: 16px;
-  border: 1px solid #334155;
-  background: #0f172a;
-  color: white;
-  padding: 16px;
-  font-size: 15px;
-  margin-bottom: 20px;
-}
-
-.interview-actions {
   display: flex;
-  gap: 12px;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
+/* Fullscreen Mandatory Overlay */
+.fullscreen-prompt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #e0eeff 0%, #f0f7ff 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  backdrop-filter: blur(10px);
+}
+
+.fullscreen-prompt-card {
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 20px 50px rgba(0, 42, 107, 0.08);
+  border-radius: 24px;
+}
+
+/* Left Panel Sizing Adjustments */
+.live-left .progress-bar-wrapper {
+  flex-shrink: 0;
+}
+
+.live-left .round-info {
+  padding: 12px 20px !important;
+  flex-shrink: 0;
+}
+
+.live-left .question-box {
+  padding: 16px 20px !important;
+  flex-shrink: 0;
+}
+
+.live-left .transcription-box {
+  padding: 16px 20px !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.live-left .transcription-box .transcription-text-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-top: 8px;
+}
+
+/* Right Panel Integrity Dashboard styling */
+.live-right > div {
+  padding: 16px 20px !important;
+}
+
+.integrity-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.indicator-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  transition: all 0.25s ease;
+}
+
+.indicator-row.active {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(240, 253, 250, 0.5);
+}
+
+.indicator-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-dark-blue);
+  font-weight: 500;
+}
+
+.indicator-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Camera monitor rendering box */
 .camera-box {
+  position: relative;
   width: 100%;
-  border-radius: 16px;
+  height: 180px;
+  border-radius: 12px;
   overflow: hidden;
   background: #000;
+  border: 1px solid var(--glass-border);
+  flex-shrink: 0;
+  margin-top: 6px;
 }
 
-.camera-preview {
+.camera-monitor {
   width: 100%;
-  height: 300px;
+  height: 100%;
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  transform: scaleX(-1); /* mirror effect */
 }
 
-.result-grid {
-  display: grid;
-  gap: 20px;
-  margin: 24px 0;
+/* Horizontal Progress bar styling */
+.progress-bar-wrapper {
+  margin-bottom: 4px;
 }
 
-.result-box {
-  background: rgba(255,255,255,0.04);
-  padding: 20px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.08);
+.progress-bar-container {
+  height: 6px;
+  background: rgba(0, 42, 107, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 6px;
 }
 
-pre {
-  white-space: pre-wrap;
-  word-break: break-word;
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-medium-blue), var(--color-navy));
+  border-radius: 999px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@media (max-width: 900px) {
+/* Pulse recording signal */
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Responsiveness */
+@media (max-width: 992px) {
   .live-interview-page {
     grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 16px;
+    overflow-y: auto;
+    height: auto;
   }
-
-  .interview-card,
-  .result-card {
-    padding: 24px;
-  }
-
-  .interview-card h1 {
-    font-size: 2rem;
+  .live-left,
+  .live-right {
+    height: auto;
+    overflow: visible;
   }
 }

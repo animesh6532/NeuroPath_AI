@@ -1,5 +1,5 @@
 from sentence_transformers import SentenceTransformer, util
-from backend.app.ml.comprehensive_careers import CAREER_TEXT
+
 
 # Load embedding model
 model = SentenceTransformer('all-MiniLM-L6-v2')

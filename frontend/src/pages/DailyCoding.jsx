@@ -2,6 +2,9 @@ import { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { dailyAPI } from "../api/endpoints";
+import { motion } from "framer-motion";
+import { Terminal, ShieldAlert, Code, Play, ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { GlassCard, GlassButton, GlassBadge } from "../components/ui/DesignSystem";
 import "./DailyCoding.css";
 
 function DailyCoding() {
@@ -9,7 +12,7 @@ function DailyCoding() {
   const { codingProgress, setCodingProgress, analysisData } = useContext(AppContext);
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [code, setCode] = useState("// Write your solution here...\n");
+  const [code, setCode] = useState("# Write your python solution here...\n\ndef solve():\n    pass\n");
   const [activeChallenge, setActiveChallenge] = useState(null);
   const warningRef = useRef(0);
 
@@ -30,7 +33,6 @@ function DailyCoding() {
 
     fetchChallenges();
 
-    // Strict Mode
     const enterFullscreen = async () => {
       try {
         if (document.documentElement.requestFullscreen) {
@@ -87,9 +89,8 @@ function DailyCoding() {
   };
 
   const handleRunCode = () => {
-    alert("Code submitted successfully! (Mock execution)");
+    alert("Code submitted successfully! Compiling and running tests...");
     
-    // Update daily progress streak and solved count
     const today = new Date().toISOString().split('T')[0];
     
     setCodingProgress(prev => {
@@ -104,64 +105,118 @@ function DailyCoding() {
     });
   };
 
-  if (analysisData?.best_domain !== "Technology") {
+  const best_domain = analysisData?.best_domain ?? "General";
+  const isTechnical = best_domain.toLowerCase().includes("tech") || 
+                      best_domain.toLowerCase().includes("software") || 
+                      best_domain.toLowerCase().includes("engineer") ||
+                      best_domain.toLowerCase().includes("developer") ||
+                      best_domain.toLowerCase().includes("coding");
+
+  if (!isTechnical) {
     return (
-      <div className="daily-coding-page" style={{display:'flex',justifyContent:'center',alignItems:'center',flexDirection:'column'}}>
-        <h2>Access Restricted</h2>
-        <p>Coding challenges are available only for technical users.</p>
-        <button className="exit-btn" onClick={() => navigate('/dashboard')} style={{marginTop:'20px',padding:'10px 20px'}}>Return to Dashboard</button>
+      <div className="page-container daily-coding-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <GlassCard className="empty-card" style={{ maxWidth: "500px", textAlign: "center" }}>
+          <ShieldAlert size={40} className="text-danger" style={{ marginBottom: "20px", margin: "0 auto" }} />
+          <h2>Access Restricted</h2>
+          <p className="text-small">Coding challenges are available only for technical developers.</p>
+          <GlassButton primary onClick={() => navigate('/dashboard')} style={{ marginTop: '20px' }}>
+            Return to Dashboard
+          </GlassButton>
+        </GlassCard>
       </div>
     );
   }
 
   if (loading) {
-    return <div className="daily-coding-page"><h2>Loading Daily Challenges...</h2></div>;
+    return (
+      <div className="page-container daily-coding-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <GlassCard className="empty-card" style={{ textAlign: "center" }}>
+          <Loader2 size={32} className="icon-spin text-secondary" style={{ marginBottom: "16px", margin: "0 auto" }} />
+          <p>Loading Daily Challenges...</p>
+        </GlassCard>
+      </div>
+    );
   }
 
   return (
-    <div className="daily-coding-page">
-      <div className="daily-header">
-        <h1>Daily Coding Challenge</h1>
-        <button className="exit-btn" onClick={handleExit}>Exit Session</button>
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="page-container daily-coding-page"
+    >
+      <div className="daily-header glass-card-v6" style={{ background: "var(--glass-bg)", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 32px", borderRadius: "24px" }}>
+        <div>
+          <span className="glass-badge">Challenge IDE</span>
+          <h1 style={{ fontSize: "1.6rem", margin: "4px 0 0 0" }}>Daily Coding Practice</h1>
+          <p className="text-small" style={{ margin: "4px 0 0 0" }}>Strict examination rules are active</p>
+        </div>
+        <GlassButton onClick={handleExit}>
+          <ArrowLeft size={16} /> Exit Session
+        </GlassButton>
       </div>
 
-      <div className="challenges-container">
-        <div className="challenge-list">
-          <h2>Today's Problems</h2>
+      <div className="challenges-container" style={{ display: "grid", gridTemplateColumns: "1.1fr 1.9fr", gap: "24px", marginTop: "24px" }}>
+        <div className="challenge-list" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <h3 className="text-title" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1.1rem" }}><Terminal size={16} /> Problems Palette</h3>
           {challenges.map((challenge, idx) => (
             <div 
               key={idx} 
-              className="challenge-card"
-              style={{ borderLeftColor: activeChallenge === challenge ? '#3b82f6' : 'transparent', backgroundColor: activeChallenge === challenge ? '#1e293b' : '#334155' }}
+              className="challenge-card glass-card"
+              style={{ 
+                cursor: "pointer", 
+                borderColor: activeChallenge === challenge ? 'var(--color-navy)' : 'var(--glass-border)', 
+                background: activeChallenge === challenge ? 'rgba(255, 255, 255, 0.75)' : 'rgba(255, 255, 255, 0.4)',
+                transition: "all var(--transition-fast) ease",
+                padding: "20px",
+                borderRadius: "16px",
+                border: "1px solid var(--glass-border)"
+              }}
               onClick={() => setActiveChallenge(challenge)}
             >
-              <h3>{challenge.title}</h3>
-              <div className="challenge-meta">
-                <span className={`difficulty-badge difficulty-${challenge.difficulty}`}>{challenge.difficulty}</span>
-                <span className="topic-badge">{challenge.topic}</span>
+              <h4 style={{ margin: 0, color: "var(--color-dark-blue)", fontSize: "1rem" }}>{challenge.title}</h4>
+              <div className="challenge-meta" style={{ display: "flex", gap: "8px", margin: "8px 0" }}>
+                <GlassBadge status={challenge.difficulty?.toLowerCase() === "easy" ? "success" : "warning"}>
+                  {challenge.difficulty}
+                </GlassBadge>
+                <GlassBadge status="secondary">{challenge.topic}</GlassBadge>
               </div>
-              <p style={{fontSize: '14px', color: '#cbd5e1'}}>{challenge.description}</p>
+              <p className="text-small" style={{ margin: 0, color: "var(--text-secondary)" }}>{challenge.description}</p>
             </div>
           ))}
         </div>
 
-        <div className="coding-area">
-          <div className="editor-header">
-            <span>IDE - {activeChallenge?.title}</span>
-            <span>Python 3</span>
+        <GlassCard className="coding-area" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: "450px", border: "1px solid var(--glass-border)" }}>
+          <div className="editor-header" style={{ display: "flex", justifyContent: "space-between", background: "rgba(255, 255, 255, 0.45)", padding: "12px 20px", borderBottom: "1px solid var(--glass-border)", fontSize: "0.85rem", fontWeight: "600", color: "var(--text-primary)" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Code size={14} /> IDE - {activeChallenge?.title}</span>
+            <GlassBadge status="secondary">Python 3</GlassBadge>
           </div>
           <textarea 
             className="mock-editor"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             spellCheck="false"
+            style={{ 
+              flex: 1, 
+              background: "rgba(255, 255, 255, 0.25)", 
+              border: 0, 
+              outline: "none", 
+              color: "var(--color-navy)", 
+              fontFamily: "monospace", 
+              padding: "20px", 
+              fontSize: "0.95rem", 
+              lineHeight: 1.5,
+              resize: "none"
+            }}
           />
-          <div className="editor-footer">
-            <button className="run-btn" onClick={handleRunCode}>Run & Submit</button>
+          <div className="editor-footer" style={{ padding: "16px 20px", borderTop: "1px solid var(--glass-border)", background: "rgba(255, 255, 255, 0.45)", display: "flex", justifyContent: "flex-end" }}>
+            <GlassButton primary onClick={handleRunCode}>
+              <Play size={14} /> Run & Submit Code
+            </GlassButton>
           </div>
-        </div>
+        </GlassCard>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

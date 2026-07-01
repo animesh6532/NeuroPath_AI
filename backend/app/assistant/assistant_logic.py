@@ -1,5 +1,5 @@
 import re
-from backend.app.assistant.project_knowledge import PROJECT_KNOWLEDGE, REFUSAL_RESPONSE
+from app.assistant.project_knowledge import PROJECT_KNOWLEDGE, REFUSAL_RESPONSE
 
 def preprocess_text(text: str) -> list:
     """Lowercases the text, removes punctuation, and splits into words."""

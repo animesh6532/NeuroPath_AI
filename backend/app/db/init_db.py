@@ -1,5 +1,5 @@
-from backend.app.db.database import engine
-from backend.app.db.models import Base
+from app.db.database import engine
+from app.db.models import Base
 
 print("Creating database...")
 

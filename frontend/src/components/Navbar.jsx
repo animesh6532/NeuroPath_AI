@@ -1,8 +1,9 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { AppContext } from "../context/AppContext";
 import { ThemeContext } from "../context/ThemeContext";
+import { Sun, Moon, LogOut, User, Menu, X, BrainCircuit } from "lucide-react";
 import "./Navbar.css";
 
 function Navbar() {
@@ -12,6 +13,21 @@ function Navbar() {
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isShrunk, setIsShrunk] = useState(false);
+
+  // Scroll listener to shrink navbar dynamically
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsShrunk(true);
+      } else {
+        setIsShrunk(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -22,10 +38,12 @@ function Navbar() {
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <header className="navbar">
-      <div className="navbar-container">
+    <header className={`navbar-wrapper-v6 ${isShrunk ? "shrunk" : ""}`}>
+      <div className="navbar-container-v6 glass-card-v6">
         <Link to="/" className="navbar-logo" onClick={closeMenu}>
-          NeuroPath <span>AI</span>
+          <BrainCircuit size={20} className="logo-icon" />
+          <span>NeuroPath</span>
+          <span className="logo-accent">AI</span>
         </Link>
 
         <button
@@ -33,11 +51,11 @@ function Navbar() {
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
         >
-          ☰
+          {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
 
         <nav className={`navbar-links ${menuOpen ? "open" : ""}`}>
-          <NavLink to="/" onClick={closeMenu}>
+          <NavLink to="/" onClick={closeMenu} end>
             Home
           </NavLink>
 
@@ -47,48 +65,48 @@ function Navbar() {
                 Dashboard
               </NavLink>
               <NavLink to="/resume" onClick={closeMenu}>
-                Resume Analyze
+                Resume Intelligence
               </NavLink>
               <NavLink to="/interview" onClick={closeMenu}>
-                AI Mock Interview
+                AI Interview
               </NavLink>
               <NavLink to="/placement" onClick={closeMenu}>
-                Placement Prediction
+                Placement Engine
               </NavLink>
               <NavLink to="/roadmap" onClick={closeMenu}>
-                Learning Roadmap
-              </NavLink>
-              <NavLink to="/profile" onClick={closeMenu}>
-                Profile
+                Roadmap
               </NavLink>
             </>
           )}
         </nav>
 
         <div className="navbar-actions">
-          <button className="theme-toggle" onClick={toggleTheme}>
-            {darkMode ? "☀️" : "🌙"}
-          </button>
+          {/* Theme button removed to enforce the light glass theme */}
 
           {!isAuthenticated ? (
-            <>
+            <div className="auth-btns">
               <button
-                className="nav-btn secondary"
+                className="glass-btn-v6-nav"
                 onClick={() => navigate("/login")}
               >
                 Login
               </button>
               <button
-                className="nav-btn primary"
+                className="glass-btn-v6-nav primary"
                 onClick={() => navigate("/register")}
               >
                 Get Started
               </button>
-            </>
+            </div>
           ) : (
-            <button className="nav-btn danger" onClick={handleLogout}>
-              Logout
-            </button>
+            <div className="user-actions">
+              <NavLink to="/profile" className="profile-link" onClick={closeMenu} title="Profile">
+                <User size={16} />
+              </NavLink>
+              <button className="icon-btn logout-btn" onClick={handleLogout} title="Logout">
+                <LogOut size={16} />
+              </button>
+            </div>
           )}
         </div>
       </div>

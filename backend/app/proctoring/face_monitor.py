@@ -8,10 +8,14 @@ logger = logging.getLogger(__name__)
 cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 face_cascade = cv2.CascadeClassifier(cascade_path)
 
+eye_cascade_path = cv2.data.haarcascades + "haarcascade_eye.xml"
+eye_cascade = cv2.CascadeClassifier(eye_cascade_path)
+
 # Track consecutive frames
 state = {
     "no_face_count": 0,
-    "multi_face_count": 0
+    "multi_face_count": 0,
+    "look_away_count": 0
 }
 
 def analyze_frame(frame_bytes: bytes):
@@ -43,11 +47,12 @@ def analyze_frame(frame_bytes: bytes):
     if num_faces == 0:
         state["no_face_count"] += 1
         state["multi_face_count"] = 0
+        state["look_away_count"] = 0
         if state["no_face_count"] >= 5:
             return {
                 "face_detected": False,
                 "multiple_faces": False,
-                "warning": "No face detected for 10+ seconds. Please stay visible."
+                "warning": "No face detected. Please stay visible."
             }
         return {"face_detected": False, "multiple_faces": False, "warning": None}
 
@@ -55,6 +60,7 @@ def analyze_frame(frame_bytes: bytes):
     if num_faces > 1:
         state["multi_face_count"] += 1
         state["no_face_count"] = 0
+        state["look_away_count"] = 0
         if state["multi_face_count"] >= 5:
             return {
                 "face_detected": True,
@@ -71,6 +77,7 @@ def analyze_frame(frame_bytes: bytes):
 
     if face_area < frame_area * 0.02:  # Lowered threshold to 2% to be less sensitive
         state["no_face_count"] += 1
+        state["look_away_count"] = 0
         if state["no_face_count"] >= 5:
             return {
                 "face_detected": False,
@@ -79,12 +86,28 @@ def analyze_frame(frame_bytes: bytes):
             }
         return {"face_detected": False, "multiple_faces": False, "warning": None}
 
-    # Reset states on a fully valid, perfectly detected single face frame
+    # Detect eyes within the face ROI to trace looking away
+    roi_gray = gray[y:y+h, x:x+w]
+    eyes = eye_cascade.detectMultiScale(roi_gray, scaleFactor=1.1, minNeighbors=3, minSize=(10, 10))
+    
+    if len(eyes) == 0:
+        state["look_away_count"] += 1
+        if state["look_away_count"] >= 5:
+            return {
+                "face_detected": True,
+                "multiple_faces": False,
+                "warning": "Looking away from screen detected. Please focus on the interview."
+            }
+        return {"face_detected": True, "multiple_faces": False, "warning": None}
+
+    # Reset states on a fully valid, perfectly detected single face frame with eyes visible
     state["no_face_count"] = 0
     state["multi_face_count"] = 0
+    state["look_away_count"] = 0
 
     return {
         "face_detected": True,
         "multiple_faces": False,
         "warning": None
     }
+

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File
-from backend.app.proctoring.face_monitor import analyze_frame
+from app.proctoring.face_monitor import analyze_frame
 
 router = APIRouter(prefix="/proctoring", tags=["Proctoring"])
 

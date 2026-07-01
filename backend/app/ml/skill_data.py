@@ -1,5 +1,5 @@
-from backend.app.ml.comprehensive_careers import CAREER_TEXT
 SKILL_DATA = {
+
 
 "Data Scientist": [
     "python", "machine learning", "statistics",

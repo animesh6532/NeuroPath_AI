@@ -1,11 +1,147 @@
-/* Global styles */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* V6 Bright Color System */
+  --bg-primary: #E8F3FF;
+  
+  /* White Frosted Glass Cards (rgba(255,255,255,.55) as requested) */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-hover: rgba(255, 255, 255, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-border-hover: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 12px 24px rgba(0, 0, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  
+  /* Palette Constants */
+  --color-dark-blue: #00002A;     /* Headings */
+  --color-navy: #1A3F75;          /* Body Text */
+  --color-medium-blue: #446A9C;   /* Secondary Text */
+  --color-soft-blue: #AFCBE8;
+  --color-highlight: #E8F3FF;
+  
+  /* Text Mappings */
+  --text-primary: #1A3F75;
+  --text-secondary: #446A9C;
+  --text-muted: rgba(26, 63, 117, 0.65);
+  
+  /* Typography */
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', var(--font-sans);
+  
+  /* Transitions */
+  --transition-fast: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Reset */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
+body {
+  /* Animated gradient: #E8F3FF -> #DDEEFF -> #C9E1F8 -> #AFCBE8 */
+  background: linear-gradient(-45deg, #E8F3FF, #DDEEFF, #C9E1F8, #AFCBE8);
+  background-size: 400% 400%;
+  animation: gradientAnimation 12s ease infinite;
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ─── SOFT WHITE RADIAL GLOWS (No dark section) ─── */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background: 
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.5) 0%, transparent 60%),
+    radial-gradient(circle at 80% 75%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Custom Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(26, 63, 117, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-medium-blue);
+}
+
+/* Typographic Styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-dark-blue) !important; /* Headings must be dark blue */
+}
+
+/* Display Scale */
+.text-display-v6 {
+  font-size: clamp(3rem, 6vw, 4.8rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: var(--color-dark-blue);
+}
+
+.text-subtitle-v6 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+/* Focus and Active Indicators */
+.glass-focus-ring:focus {
+  outline: none;
+  border-color: var(--color-navy) !important;
+  box-shadow: 0 0 0 3px rgba(26, 63, 117, 0.15) !important;
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 110px auto 60px auto;
+  padding: 0 24px;
+  position: relative;
+  z-index: 2;
+}
+
+.no-print {
+  display: block;
+}
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
