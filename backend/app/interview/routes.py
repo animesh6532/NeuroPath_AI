@@ -9,12 +9,12 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sentence_transformers import SentenceTransformer, util
 
-from app.db.database import SessionLocal
-from app.db.models import InterviewQuestion, InterviewSession, InterviewReport, InterviewQuestionMemory
-from app.services.career_classifier import classify_career_profile
-from app.services.blueprint_generator import generate_interview_blueprint
-from app.ml.interview.answer_evaluator import evaluate_candidate_answer
-from app.services.pdf_generator import generate_pdf_report
+from backend.app.db.database import SessionLocal
+from backend.app.db.models import InterviewQuestion, InterviewSession, InterviewReport, InterviewQuestionMemory
+from backend.app.services.career_classifier import classify_career_profile
+from backend.app.services.blueprint_generator import generate_interview_blueprint
+from backend.app.ml.interview.answer_evaluator import evaluate_candidate_answer
+from backend.app.services.pdf_generator import generate_pdf_report
 
 router = APIRouter(prefix="/interview", tags=["AI Stateful Interview"])
 
@@ -80,6 +80,49 @@ NEUROPATH_PROJECT_QUESTIONS = [
     }
 ]
 
+def classify_question_metadata(question_text: str, category: str, is_follow_up: bool) -> dict:
+    """
+    Determines adaptive duration and question type metadata.
+    """
+    if is_follow_up:
+        return {
+            "question_type": "follow_up",
+            "expected_duration": 30
+        }
+    
+    cat_lower = category.lower() if category else ""
+    text_lower = question_text.lower() if question_text else ""
+    
+    # Behavioral/HR/Soft Skills: 60s
+    if cat_lower in ["intro", "resume", "internship", "behavioural", "hr", "closing"]:
+        return {
+            "question_type": "behavioral",
+            "expected_duration": 60
+        }
+    elif cat_lower == "system design":
+        return {
+            "question_type": "system_design",
+            "expected_duration": 90
+        }
+    # Check if category is technical/scenario/projects
+    elif cat_lower in ["technical", "scenario", "projects"]:
+        coding_triggers = ["code", "program", "function", "coding", "algorithm", "syntax", "develop a", "implement a"]
+        if any(trigger in text_lower for trigger in coding_triggers):
+            return {
+                "question_type": "coding",
+                "expected_duration": 60
+            }
+        else:
+            return {
+                "question_type": "technical",
+                "expected_duration": 45
+            }
+    else:
+        return {
+            "question_type": "technical",
+            "expected_duration": 45
+        }
+
 def get_fallback_question(industry: str, role: str, topic: str, difficulty: str) -> dict:
     q_map = {
         "Intro": "Tell me about your background and how it led you to pursue this role.",
@@ -111,118 +154,47 @@ def get_fallback_question(industry: str, role: str, topic: str, difficulty: str)
 
 def select_question(db: Session, email: str, industry: str, role: str, category: str, difficulty: str, projects: list, round_number: int) -> dict:
     """
-    Selects a highly structured question for the candidate, enforcing cross-interview deduplication
-    via InterviewQuestionMemory, and populating dynamic project-specific questions.
+    Selects a highly structured question for the candidate, generating it dynamically from the candidate's actual resume profile.
     """
-    # 1. Compute unique resume hash from candidate email
-    resume_hash = hashlib.sha256(email.strip().lower().encode('utf-8')).hexdigest()
+    from backend.app.services.resume_question_generator import generate_personalized_question
     
-    # 2. Get list of previously asked question IDs to avoid repeats
+    # Resolve focus and round_name from active session blueprint
+    focus = None
+    round_name = None
+    try:
+        session = db.query(InterviewSession).filter(
+            InterviewSession.email == email, 
+            InterviewSession.is_completed == 0
+        ).order_by(InterviewSession.created_at.desc()).first()
+        if session:
+            blueprint = json.loads(session.blueprint)
+            if blueprint and 0 <= (round_number - 1) < len(blueprint):
+                round_item = blueprint[round_number - 1]
+                focus = round_item.get("focus")
+                round_name = round_item.get("name")
+    except Exception as e:
+        print(f"[select_question Warning] Could not load active blueprint round: {str(e)}")
+
+    # Simple history list from InterviewQuestionMemory
+    resume_hash = hashlib.sha256(email.strip().lower().encode('utf-8')).hexdigest()
     asked_records = db.query(InterviewQuestionMemory).filter(
         InterviewQuestionMemory.resume_hash == resume_hash
     ).all()
-    asked_ids = [rec.question_id for rec in asked_records]
+    asked_ids = [{"question_id": rec.question_id} for rec in asked_records]
 
-    # 3. Handle Project-Specific Questions
-    if category == "Projects" or category == "Resume":
-        is_neuropath = False
-        project_descriptions = " ".join(projects).lower()
-        if "neuropath" in project_descriptions:
-            is_neuropath = True
-
-        if is_neuropath:
-            # Pick a specific NeuroPath AI question based on round number
-            q_idx = (round_number - 1) % len(NEUROPATH_PROJECT_QUESTIONS)
-            q_data = NEUROPATH_PROJECT_QUESTIONS[q_idx]
-            
-            # Check if this question ID (derived as custom negative offset) was already asked
-            custom_id = -100 - q_idx
-            if custom_id not in asked_ids:
-                return {
-                    "id": custom_id,
-                    "question_text": q_data["question_text"],
-                    "topic": "Projects",
-                    "sub_topic": q_data["sub_topic"],
-                    "difficulty": difficulty,
-                    "expected_answer": q_data["expected_answer"],
-                    "rubric": json.dumps(q_data["rubric"]),
-                    "follow_ups": json.dumps(["How did you optimize this?", "What were the design tradeoffs?"]),
-                    "concept_tags": json.dumps(["neuropath", q_data["sub_topic"].lower()]),
-                    "estimated_time": 90
-                }
-
-        # Otherwise look for project keywords
-        kw_questions = [
-            ("database", "Database Architecture", "Explain the database schema design you selected for your project. Why did you choose this relational or non-relational database?", "A complete explanation of schema design, indexing, scaling, and transactional constraints.", ["database", "schemas", "sql", "NoSQL"]),
-            ("react", "Frontend Architecture", "Walk me through your React component state management strategy in your project. How did you structure components for reuse?", "An overview of state lifecycles, contexts, custom hooks, and layout modularity.", ["react", "components", "hooks", "state"]),
-            ("fastapi", "API Architecture", "How did you design and secure the RESTful API endpoints in your project? What serialization and middleware layers did you use?", "Details on endpoints routing, JWT validation, Pydantic serialization, and CORS.", ["fastapi", "endpoints", "middleware", "jwt"]),
-            ("security", "Application Security", "How did you secure your project against common threats like SQL injection, cross-site scripting, and credential leaks?", "Explanation of input validation, parameterization, token encryption, and hashing.", ["security", "encryption", "validation", "hashing"])
-        ]
-        
-        for idx, (kw, sub, q_txt, exp, rub) in enumerate(kw_questions):
-            custom_id = -200 - idx
-            if kw in project_descriptions and custom_id not in asked_ids:
-                return {
-                    "id": custom_id,
-                    "question_text": q_txt,
-                    "topic": "Projects",
-                    "sub_topic": sub,
-                    "difficulty": difficulty,
-                    "expected_answer": exp,
-                    "rubric": json.dumps(rub),
-                    "follow_ups": json.dumps(["What options did you reject?", "How does this scale?"]),
-                    "concept_tags": json.dumps(["project", kw]),
-                    "estimated_time": 90
-                }
-
-    # 4. Standard Question Selection (Query DB Graph)
-    # Exclude duplicate IDs that have already been asked
-    q_records = db.query(InterviewQuestion).filter(
-        InterviewQuestion.industry == industry,
-        InterviewQuestion.role == role,
-        InterviewQuestion.difficulty == difficulty,
-        InterviewQuestion.topic == category,
-        ~InterviewQuestion.id.in_(asked_ids) if asked_ids else True
-    ).all()
-
-    if not q_records:
-        # Fallback to category-only matching
-        q_records = db.query(InterviewQuestion).filter(
-            InterviewQuestion.difficulty == difficulty,
-            InterviewQuestion.topic == category,
-            ~InterviewQuestion.id.in_(asked_ids) if asked_ids else True
-        ).all()
-
-    if q_records:
-        # Pick the first one
-        qr = q_records[0]
-        return {
-            "id": qr.id,
-            "question_text": qr.question_text,
-            "topic": qr.topic,
-            "sub_topic": qr.sub_topic,
-            "difficulty": qr.difficulty,
-            "expected_answer": qr.expected_answer,
-            "rubric": qr.evaluation_rubric,
-            "follow_ups": qr.follow_ups,
-            "concept_tags": qr.concept_tags,
-            "estimated_time": qr.estimated_time
-        }
-
-    # 5. Last Fallback
-    fq = get_fallback_question(industry, role, category, difficulty)
-    return {
-        "id": -1,
-        "question_text": fq["question_text"],
-        "topic": fq["topic"],
-        "sub_topic": fq["sub_topic"],
-        "difficulty": fq["difficulty"],
-        "expected_answer": fq["expected_answer"],
-        "rubric": fq["evaluation_rubric"],
-        "follow_ups": fq["follow_ups"],
-        "concept_tags": fq["concept_tags"],
-        "estimated_time": fq["estimated_time"]
-    }
+    return generate_personalized_question(
+        email=email,
+        name="Candidate",
+        skills=[],
+        experience=[],
+        projects=projects or [],
+        category=category,
+        difficulty=difficulty,
+        round_number=round_number,
+        history=asked_ids,
+        focus=focus,
+        round_name=round_name
+    )
 
 @router.post("/start")
 async def start_stateful_interview(payload: dict = Body(...), db: Session = Depends(get_db)):
@@ -280,15 +252,17 @@ async def start_stateful_interview(payload: dict = Body(...), db: Session = Depe
         category = first_round["category"]
         diff = first_round["difficulty"]
         
-        first_question = select_question(
-            db=db,
+        from backend.app.services.resume_question_generator import generate_personalized_question
+        first_question = generate_personalized_question(
             email=email,
-            industry=industry,
-            role=role,
+            name=name,
+            skills=skills,
+            experience=experience,
+            projects=projects,
             category=category,
             difficulty=diff,
-            projects=projects,
-            round_number=1
+            round_number=1,
+            history=[]
         )
         print(f"[AI Stateful Interview Log] Selected first question: {json.dumps(first_question)}")
 
@@ -328,6 +302,8 @@ async def start_stateful_interview(payload: dict = Body(...), db: Session = Depe
         db.commit()
         print(f"[AI Stateful Interview Log] InterviewSession initialized and committed with ID: {session_id}")
 
+        first_question_meta = classify_question_metadata(first_question["question_text"], category, False)
+
         return {
             "success": True,
             "message": "Interview started",
@@ -341,7 +317,9 @@ async def start_stateful_interview(payload: dict = Body(...), db: Session = Depe
                     "estimated_time": first_question["estimated_time"],
                     "difficulty": first_question["difficulty"],
                     "round_name": first_round["name"],
-                    "round_number": 1
+                    "round_number": 1,
+                    "question_type": first_question_meta["question_type"],
+                    "expected_duration": first_question_meta["expected_duration"]
                 }
             }
         }
@@ -454,44 +432,43 @@ async def submit_candidate_answer(payload: dict = Body(...), db: Session = Depen
         db.commit()
 
         # 4. Determine Next Question / Follow-up Logic
-        if eval_result["overall_score"] < 60 and not active_q.get("is_follow_up", False):
-            f_list = []
-            try:
-                f_list = json.loads(active_q["follow_ups"])
-            except:
-                f_list = ["Can you elaborate on your answer with a technical example?", "How does this scale?"]
-                
-            if f_list:
-                followup_text = f_list[0]
-                followup_item = {
-                    "round_number": session.current_round_index + 1,
-                    "round_name": f"{blueprint[session.current_round_index]['name']} (Follow-up)",
-                    "category": active_q["category"],
-                    "question_id": active_q["question_id"],
-                    "question_text": followup_text,
-                    "expected_answer": active_q["expected_answer"],
-                    "rubric": active_q["rubric"],
-                    "follow_ups": json.dumps(f_list[1:]),
+        # Dynamic keyword-matched follow-ups (Phase 7 & 11)
+        # Skip if empty or skipped answer (score <= 20)
+        if 20 < eval_result["overall_score"] < 60 and not active_q.get("is_follow_up", False):
+            from backend.app.services.resume_question_generator import get_followup_question
+            
+            followup_q = get_followup_question(answer_text, active_q["category"])
+            followup_item = {
+                "round_number": session.current_round_index + 1,
+                "round_name": f"{blueprint[session.current_round_index]['name']} (Follow-up)",
+                "category": active_q["category"],
+                "question_id": followup_q["id"],
+                "question_text": followup_q["question_text"],
+                "expected_answer": followup_q["expected_answer"],
+                "rubric": followup_q["rubric"],
+                "follow_ups": json.dumps([]),
+                "difficulty": active_q["difficulty"],
+                "answer": None,
+                "score": None,
+                "feedback": None,
+                "is_follow_up": True
+            }
+            history.append(followup_item)
+            session.history = json.dumps(history)
+            db.commit()
+            
+            return {
+                "is_completed": False,
+                "next_question": {
+                    "question_text": followup_q["question_text"],
+                    "estimated_time": 90,
                     "difficulty": active_q["difficulty"],
-                    "answer": None,
-                    "score": None,
-                    "feedback": None,
-                    "is_follow_up": True
+                    "round_name": followup_item["round_name"],
+                    "round_number": session.current_round_index + 1,
+                    "question_type": "follow_up",
+                    "expected_duration": 30
                 }
-                history.append(followup_item)
-                session.history = json.dumps(history)
-                db.commit()
-                
-                return {
-                    "is_completed": False,
-                    "next_question": {
-                        "question_text": followup_text,
-                        "estimated_time": 90,
-                        "difficulty": active_q["difficulty"],
-                        "round_name": followup_item["round_name"],
-                        "round_number": session.current_round_index + 1
-                    }
-                }
+            }
 
         # 5. Advance to Next Round
         session.current_round_index += 1
@@ -516,16 +493,16 @@ async def submit_candidate_answer(payload: dict = Body(...), db: Session = Depen
         category = next_round["category"]
         focus = next_round["focus"]
         
-        # Adaptive difficulty adjustment based on past 2 answers
+        # Adaptive difficulty adjustment based on past answers (Phase 8 instant adaptivity)
         evaluated_scores = [h["score"] for h in history if h["score"] is not None]
         curr_diff = session.current_difficulty
         
-        if len(evaluated_scores) >= 2:
-            last_two = evaluated_scores[-2:]
-            if all(s >= 80 for s in last_two):
+        if evaluated_scores:
+            last_score = evaluated_scores[-1]
+            if last_score >= 80:
                 diff_flow = {"Easy": "Medium", "Medium": "Hard", "Hard": "Expert", "Expert": "Expert"}
                 curr_diff = diff_flow.get(curr_diff, "Medium")
-            elif all(s <= 50 for s in last_two):
+            elif last_score < 60:
                 diff_flow = {"Expert": "Hard", "Hard": "Medium", "Medium": "Easy", "Easy": "Easy"}
                 curr_diff = diff_flow.get(curr_diff, "Medium")
                 
@@ -567,6 +544,8 @@ async def submit_candidate_answer(payload: dict = Body(...), db: Session = Depen
         session.history = json.dumps(history)
         db.commit()
         
+        next_question_meta = classify_question_metadata(next_question["question_text"], category, False)
+        
         return {
             "is_completed": False,
             "next_question": {
@@ -574,7 +553,9 @@ async def submit_candidate_answer(payload: dict = Body(...), db: Session = Depen
                 "estimated_time": next_question["estimated_time"],
                 "difficulty": next_question["difficulty"],
                 "round_name": next_round["name"],
-                "round_number": session.current_round_index + 1
+                "round_number": session.current_round_index + 1,
+                "question_type": next_question_meta["question_type"],
+                "expected_duration": next_question_meta["expected_duration"]
             }
         }
     except Exception as e:

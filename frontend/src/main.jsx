@@ -5,9 +5,9 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
 
-import { AuthProvider } from "./context/AuthContext";
-import { AppProvider } from "./context/AppContext";
-import { ThemeProvider } from "./context/ThemeContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { AppProvider } from "./contexts/AppContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 ReactDOM.createRoot(document.getElementById("root")).render(

@@ -1,7 +1,7 @@
-from app.ml.interview.question_generator import generate_questions_from_skills
-from app.ml.interview.interview_engine import evaluate_interview_answers
-from app.ml.placement.placement_engine import predict_placement_result
-from app.ml.learning.roadmap_generator import generate_learning_roadmap
+from backend.app.ml.interview.question_generator import generate_questions_from_skills
+from backend.app.ml.interview.interview_engine import evaluate_interview_answers
+from backend.app.ml.placement.placement_engine import predict_placement_result
+from backend.app.ml.learning.roadmap_generator import generate_learning_roadmap
 
 
 def start_interview_from_resume(skills: list):

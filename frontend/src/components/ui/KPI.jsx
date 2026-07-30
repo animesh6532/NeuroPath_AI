@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'react'; // No, vanilla
 import Card from './Card';
 import Skeleton from './Skeleton';
-import { useDesignSystem } from '../../context/ThemeContext';
+import { useDesignSystem } from '../../contexts/ThemeContext';
 
 const KPI = ({
   title,

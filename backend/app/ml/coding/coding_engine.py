@@ -1,8 +1,8 @@
 import random
 import json
 from sqlalchemy.orm import Session
-from app.db.models import CodingProblem, CodingAttempt
-from app.ml.placement.placement_engine import is_technical_domain
+from backend.app.db.models import CodingProblem, CodingAttempt
+from backend.app.ml.placement.placement_engine import is_technical_domain
 
 CAREER_TOPICS = {
     "software": ["Algorithms", "Arrays", "Stacks", "Sorting"],

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from app.assistant.assistant_logic import get_assistant_response
+from backend.app.assistant.assistant_logic import get_assistant_response
 
 router = APIRouter()
 

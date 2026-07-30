@@ -1,6 +1,6 @@
 import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppContext } from "../context/AppContext";
+import { AppContext } from "../contexts/AppContext";
 import { interviewAPI } from "../api/endpoints";
 import "./AIInterview.css";
 

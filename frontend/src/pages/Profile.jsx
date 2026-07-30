@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
-import { AuthContext } from "../context/AuthContext";
-import { AppContext } from "../context/AppContext";
+import { AuthContext } from "../contexts/AuthContext";
+import { AppContext } from "../contexts/AppContext";
 import { profileAPI } from "../api/endpoints";
 import { motion, AnimatePresence } from "framer-motion";
 import { 

@@ -81,5 +81,41 @@
       "privacy": "public"
     },
     "verified": true
+  },
+  "animeshsahoo451@gmail.com": {
+    "name": "",
+    "bio": "",
+    "profile_image": "",
+    "cover_image": "",
+    "custom_skills": [],
+    "email": "animeshsahoo451@gmail.com",
+    "career_title": "",
+    "current_status": "",
+    "current_org": "",
+    "github": "",
+    "linkedin": "",
+    "portfolio": "",
+    "career_objective": "",
+    "interests": "",
+    "passion": "",
+    "languages": [],
+    "soft_skills": [],
+    "education": [],
+    "achievements": [],
+    "projects": [],
+    "certifications": [],
+    "work_experience": [],
+    "career_goals": {
+      "target_role": "",
+      "dream_company": "",
+      "preferred_domain": "",
+      "learning_focus": ""
+    },
+    "settings": {
+      "theme": "light",
+      "notifications": true,
+      "privacy": "public"
+    },
+    "verified": false
   }
 }

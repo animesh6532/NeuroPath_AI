@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppContext } from "../context/AppContext";
+import { AppContext } from "../contexts/AppContext";
 import { dailyAPI } from "../api/endpoints";
 import { motion, AnimatePresence } from "framer-motion";
 import Editor from "@monaco-editor/react";

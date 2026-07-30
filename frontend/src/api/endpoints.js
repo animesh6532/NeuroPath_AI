@@ -1,41 +1,4 @@
-import axios from "axios";
-
-const API = axios.create({
-  baseURL: "http://127.0.0.1:8001",
-});
-
-// Automatically inject JWT authorization token if saved
-API.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Unwrap { success, data, message } envelope — keeps all callers simple
-API.interceptors.response.use(
-  (response) => {
-    if (
-      response.data &&
-      typeof response.data === "object" &&
-      typeof response.data.success !== "undefined"
-    ) {
-      return {
-        ...response,
-        data: response.data.data ?? null,
-        originalData: response.data,
-        success: response.data.success,
-        message: response.data.message,
-      };
-    }
-    return response;
-  },
-  (error) => Promise.reject(error)
-);
+import API from "./axios";
 
 // ================= AUTH API =================
 export const authAPI = {
@@ -64,8 +27,10 @@ export const interviewAPI = {
   submitAnswer:   (payload) => API.post("/interview/answer", payload),
   getReport:      (sessionId) => API.get(`/interview/report/${sessionId}`),
   getPDFReportUrl:(sessionId) => `${API.defaults.baseURL}/interview/report/${sessionId}/pdf`,
-  analyzeFrame:   (payload) =>
+  getProctorConfig: () => API.get("/proctoring/config"),
+  analyzeFrame:   (payload, sessionId) =>
     API.post("/proctoring/analyze-frame", payload, {
+      params: sessionId ? { session_id: sessionId } : {},
       headers: { "Content-Type": "multipart/form-data" },
     }),
 };

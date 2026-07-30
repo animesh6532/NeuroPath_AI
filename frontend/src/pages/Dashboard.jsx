@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppContext } from "../context/AppContext";
+import { AppContext } from "../contexts/AppContext";
 import { motion } from "framer-motion";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ChartTooltip,

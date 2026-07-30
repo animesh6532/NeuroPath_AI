@@ -30,8 +30,8 @@ Output format:
 
 import json
 from sqlalchemy.orm import Session
-from app.db.models import AptitudeAttempt
-from app.ml.placement.placement_engine import predict_placement_result
+from backend.app.db.models import AptitudeAttempt
+from backend.app.ml.placement.placement_engine import predict_placement_result
 
 def generate_learning_roadmap(
     weaknesses: list,

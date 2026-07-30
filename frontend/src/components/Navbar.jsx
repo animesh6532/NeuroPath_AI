@@ -1,8 +1,8 @@
 import { useContext, useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
-import { AppContext } from "../context/AppContext";
-import { ThemeContext } from "../context/ThemeContext";
+import { AuthContext } from "../contexts/AuthContext";
+import { AppContext } from "../contexts/AppContext";
+import { ThemeContext } from "../contexts/ThemeContext";
 import { motion } from "framer-motion";
 import { LogOut, User, Menu, X, BrainCircuit } from "lucide-react";
 import { GlassButton } from "./ui/DesignSystem";

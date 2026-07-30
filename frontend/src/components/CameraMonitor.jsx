@@ -1,17 +1,31 @@
 import { useEffect, useRef } from "react";
-import axios from "axios";
+import { interviewAPI } from "../api/endpoints";
 
-function CameraMonitor({ onViolation }) {
+function CameraMonitor({ sessionId, onViolation, onProctorUpdate }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
-  const intervalRef = useRef(null);
   const violationTriggeredRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
+    let intervalId = null;
 
-    const startCamera = async () => {
+    const startCameraAndLoop = async () => {
+      // 1. Fetch dynamic proctoring configurations (default to 500ms / 2 FPS)
+      let frameRateMs = 500;
+      try {
+        const configRes = await interviewAPI.getProctorConfig();
+        if (configRes.data && configRes.data.frame_rate_ms) {
+          frameRateMs = configRes.data.frame_rate_ms;
+        }
+      } catch (err) {
+        console.warn("Failed fetching proctoring config, using default 500ms frame rate:", err);
+      }
+
+      if (!isMounted) return;
+
+      // 2. Request camera permissions and start stream
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -23,21 +37,32 @@ function CameraMonitor({ onViolation }) {
         });
 
         if (!isMounted) return;
-
         streamRef.current = stream;
+
+        // Monitor physical hardware disconnects
+        stream.getVideoTracks().forEach((track) => {
+          track.onended = () => {
+            if (onViolation) {
+              onViolation("Camera disconnected");
+            }
+          };
+        });
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
 
-        intervalRef.current = setInterval(() => {
-          if (!violationTriggeredRef.current) {
-            captureAndSendFrame();
-          }
-        }, 2000);
+        // 3. Start continuous frame capturing at the configured rate
+        intervalId = setInterval(() => {
+          captureAndSendFrame(sessionId);
+        }, frameRateMs);
+
       } catch (err) {
         console.error("Camera access denied:", err);
+        if (onProctorUpdate) {
+          onProctorUpdate({ camera_blocked: true });
+        }
         if (!violationTriggeredRef.current && onViolation) {
           violationTriggeredRef.current = true;
           onViolation("Camera access denied");
@@ -45,20 +70,18 @@ function CameraMonitor({ onViolation }) {
       }
     };
 
-    startCamera();
+    startCameraAndLoop();
 
     return () => {
       isMounted = false;
-
-      if (intervalRef.current) clearInterval(intervalRef.current);
-
+      if (intervalId) clearInterval(intervalId);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [sessionId]);
 
-  const captureAndSendFrame = async () => {
+  const captureAndSendFrame = async (currSessionId) => {
     try {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -80,16 +103,16 @@ function CameraMonitor({ onViolation }) {
       const formData = new FormData();
       formData.append("file", blob, "frame.jpg");
 
-      const res = await axios.post(
-        "http://127.0.0.1:8001/proctoring/analyze-frame",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+      // Pass the active session ID to tie tracking history on the backend
+      const res = await interviewAPI.analyzeFrame(formData, currSessionId);
 
       console.log("🚨 Proctor Response:", res.data);
 
+      if (onProctorUpdate) {
+        onProctorUpdate(res.data);
+      }
+
+      // Handle backend-triggered warnings (e.g. invalid frame, multiple faces, etc.)
       if (res.data?.warning) {
         if (onViolation) {
           onViolation(res.data.warning);

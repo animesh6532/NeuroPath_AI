@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppContext } from "../context/AppContext";
+import { AppContext } from "../contexts/AppContext";
 import { interviewAPI } from "../api/endpoints";
 import { motion } from "framer-motion";
 import { GlassCard, GlassButton, GlassBadge } from "../components/ui/DesignSystem";

@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext } from "../contexts/AuthContext";
 import { motion } from "framer-motion";
 import { 
   ArrowRight, Sparkles, Target, FileText, Mic, Laptop, ShieldCheck, Play, Code, CheckCircle2, TrendingUp, Layers, HelpCircle

@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: neuropath_backend
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=sqlite:///./neuro.db
+      - SECRET_KEY=prod_secret_key_1234567890_abc
+      - JWT_SECRET=prod_secret_key_1234567890_abc
+      - JWT_ALGORITHM=HS256
+      - UPLOAD_DIR=uploads
+      - MODEL_PATH=models
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - FRONTEND_URL=http://localhost:3000
+      - BACKEND_URL=http://localhost:8001
+    volumes:
+      - neuropath_uploads:/app/uploads
+      - neuropath_reports:/app/reports
+      - neuropath_logs:/app/logs
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: neuropath_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8001
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  neuropath_uploads:
+  neuropath_reports:
+  neuropath_logs:

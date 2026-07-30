@@ -4,8 +4,8 @@ import hashlib
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from app.db.database import SessionLocal
-from app.db.models import Occupation, Skill, AnalysisCache
+from backend.app.db.database import SessionLocal
+from backend.app.db.models import Occupation, Skill, AnalysisCache
 
 def get_resume_fingerprint(text: str) -> str:
     """Normalizes whitespace, punctuation, and casing, then computes a SHA-256 fingerprint."""
@@ -49,7 +49,7 @@ def init_matching_cache():
         # V5 requires at least 20,000 occupations
         if not occs or len(occs) < 20000:
             print("[Matching Engine V5] Database missing V5 taxonomy. Seeding combinatorial occupations database...")
-            from app.services.career_db import seed_career_db
+            from backend.app.services.career_db import seed_career_db
             seed_career_db()
             occs = db.query(Occupation).all()
 

@@ -1,7 +1,7 @@
 import json
 import hashlib
 from sqlalchemy.orm import Session
-from app.db.models import CodingProblem
+from backend.app.db.models import CodingProblem
 
 def generate_hash(text: str) -> str:
     return hashlib.sha256(text.strip().lower().encode("utf-8")).hexdigest()

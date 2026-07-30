@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDesignSystem } from '../../context/ThemeContext';
+import { useDesignSystem } from '../../contexts/ThemeContext';
 import './Card.css'; // Will create next if needed, but use global for now
 
 const Card = ({

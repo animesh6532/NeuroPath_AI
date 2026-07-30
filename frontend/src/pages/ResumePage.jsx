@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppContext } from "../context/AppContext";
+import { AppContext } from "../contexts/AppContext";
 import ResumeUpload from "../components/ResumeUpload";
 import { motion, AnimatePresence } from "framer-motion";
 import { 

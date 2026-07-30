@@ -1,5 +1,5 @@
 import re
-from app.services.matching_engine import match_resume_to_careers
+from backend.app.services.matching_engine import match_resume_to_careers
 
 def classify_career_profile(resume_profile: dict) -> dict:
     """

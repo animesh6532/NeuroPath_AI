@@ -1,9 +1,21 @@
 import json
 import re
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import util
 
-# Load the local sentence transformer model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        import os
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        from sentence_transformers import SentenceTransformer
+        try:
+            _model = SentenceTransformer('all-MiniLM-L6-v2', local_files_only=True)
+        except Exception:
+            _model = SentenceTransformer('all-MiniLM-L6-v2')
+    return _model
 
 def evaluate_candidate_answer(question_text: str, expected_answer: str, rubric_json: str, candidate_answer: str, violations_count: int = 0) -> dict:
     """
@@ -21,6 +33,7 @@ def evaluate_candidate_answer(question_text: str, expected_answer: str, rubric_j
         }
 
     # 1. Semantic Similarity
+    model = get_model()
     emb_candidate = model.encode(candidate_answer, convert_to_tensor=True)
     emb_expected = model.encode(expected_answer, convert_to_tensor=True)
     similarity = util.cos_sim(emb_candidate, emb_expected).item()

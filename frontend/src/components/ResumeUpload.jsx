@@ -1,7 +1,7 @@
 import { useState, useRef, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { resumeAPI } from "../api/endpoints";
-import { AppContext } from "../context/AppContext";
+import { AppContext } from "../contexts/AppContext";
 import { FileUp, FileText, Loader2, AlertCircle } from "lucide-react";
 import { GlassButton } from "./ui/DesignSystem";
 import "./ResumeUpload.css";

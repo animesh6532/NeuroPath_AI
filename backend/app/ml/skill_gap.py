@@ -1,4 +1,4 @@
-from app.ml.skill_data import SKILL_DATA
+from backend.app.ml.skill_data import SKILL_DATA
 
 
 def find_skill_gap(user_skills, top_career):

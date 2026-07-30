@@ -1,7 +1,7 @@
 import json
 import random
-from app.db.database import SessionLocal
-from app.db.models import Occupation, Skill
+from backend.app.db.database import SessionLocal
+from backend.app.db.models import Occupation, Skill
 
 INDUSTRIES_DOMAINS_ROLES = {
     "Technology": {

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowRight, Cpu, Code, BookOpen, Terminal, Globe, ExternalLink, Calendar, Rocket, FileText, Mic, Target, CheckCircle2, Share2, AlertCircle, Sparkles, Layers
 } from "lucide-react";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext } from "../contexts/AuthContext";
 import { GlassCard, GlassButton, GlassBadge } from "../components/ui/DesignSystem";
 import "./About.css";
 
@@ -52,7 +52,7 @@ const PlatformArchitectureVisual = () => {
     <div className="platform-architecture-visual glass-card-v6">
       <svg className="architecture-svg-canvas" viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg">
         {/* Flow Connection Lines (Animated Dashed) */}
-        <g stroke="rgba(68, 106, 156, 0.18)" stroke-width="2" fill="none">
+        <g stroke="rgba(68, 106, 156, 0.18)" strokeWidth="2" fill="none">
           <path d="M 60,160 L 140,160" className="flowing-path-v6" />
           <path d="M 220,160 L 300,160" className="flowing-path-v6" />
           <path d="M 380,160 L 460,160" className="flowing-path-v6" />
@@ -69,51 +69,51 @@ const PlatformArchitectureVisual = () => {
         {/* Nodes and Labels */}
         {/* 1. Resume */}
         <g transform="translate(60, 160)" className="pulse-node-group">
-          <circle r="22" fill="#E8F3FF" stroke="var(--color-medium-blue)" stroke-width="2" />
+          <circle r="22" fill="#E8F3FF" stroke="var(--color-medium-blue)" strokeWidth="2" />
           <FileText size={16} x="-8" y="-8" className="node-vector-icon" />
-          <text y="38" text-anchor="middle" className="svg-node-label">Resume</text>
+          <text y="38" textAnchor="middle" className="svg-node-label">Resume</text>
         </g>
 
         {/* 2. Parser */}
         <g transform="translate(180, 160)" className="pulse-node-group">
-          <circle r="22" fill="#E8F3FF" stroke="var(--color-navy)" stroke-width="2" />
+          <circle r="22" fill="#E8F3FF" stroke="var(--color-navy)" strokeWidth="2" />
           <Cpu size={16} x="-8" y="-8" className="node-vector-icon" />
-          <text y="38" text-anchor="middle" className="svg-node-label">NLP Parser</text>
+          <text y="38" textAnchor="middle" className="svg-node-label">NLP Parser</text>
         </g>
 
         {/* 3. Skill Extraction */}
         <g transform="translate(340, 160)" className="pulse-node-group">
-          <circle r="24" fill="#1A3F75" stroke="#FFFFFF" stroke-width="2.5" />
+          <circle r="24" fill="#1A3F75" stroke="#FFFFFF" strokeWidth="2.5" />
           <Target size={18} x="-9" y="-9" style={{ color: "#E8F3FF" }} />
-          <text y="40" text-anchor="middle" className="svg-node-label highlight">Skill Ingest</text>
+          <text y="40" textAnchor="middle" className="svg-node-label highlight">Skill Ingest</text>
         </g>
 
         {/* 4A. AI Interview Engine */}
         <g transform="translate(500, 70)" className="pulse-node-group">
-          <circle r="22" fill="#E8F3FF" stroke="var(--color-medium-blue)" stroke-width="2" />
+          <circle r="22" fill="#E8F3FF" stroke="var(--color-medium-blue)" strokeWidth="2" />
           <Mic size={16} x="-8" y="-8" className="node-vector-icon" />
-          <text y="38" text-anchor="middle" className="svg-node-label">Interview</text>
+          <text y="38" textAnchor="middle" className="svg-node-label">Interview</text>
         </g>
 
         {/* 4B. Coding Sandbox */}
         <g transform="translate(500, 250)" className="pulse-node-group">
-          <circle r="22" fill="#E8F3FF" stroke="var(--color-medium-blue)" stroke-width="2" />
+          <circle r="22" fill="#E8F3FF" stroke="var(--color-medium-blue)" strokeWidth="2" />
           <Code size={16} x="-8" y="-8" className="node-vector-icon" />
-          <text y="38" text-anchor="middle" className="svg-node-label">Coding</text>
+          <text y="38" textAnchor="middle" className="svg-node-label">Coding</text>
         </g>
 
         {/* 5. Evaluation Models */}
         <g transform="translate(660, 160)" className="pulse-node-group">
-          <circle r="22" fill="#E8F3FF" stroke="var(--color-navy)" stroke-width="2" />
+          <circle r="22" fill="#E8F3FF" stroke="var(--color-navy)" strokeWidth="2" />
           <TrendingUpIcon size={16} />
-          <text y="38" text-anchor="middle" className="svg-node-label">Predict Index</text>
+          <text y="38" textAnchor="middle" className="svg-node-label">Predict Index</text>
         </g>
 
         {/* 6. Roadmap */}
         <g transform="translate(755, 160)" className="pulse-node-group">
-          <circle r="16" fill="#10b981" stroke="#FFFFFF" stroke-width="1.5" />
+          <circle r="16" fill="#10b981" stroke="#FFFFFF" strokeWidth="1.5" />
           <BookOpen size={12} x="-6" y="-6" style={{ color: "#ffffff" }} />
-          <text y="30" text-anchor="middle" className="svg-node-label success">Map</text>
+          <text y="30" textAnchor="middle" className="svg-node-label success">Map</text>
         </g>
       </svg>
     </div>
@@ -165,7 +165,7 @@ const TechnologyOrbit = () => {
           
           {/* Central Platform Node */}
           <g transform="translate(200, 200)">
-            <circle r="26" fill="#1A3F75" stroke="#E8F3FF" stroke-width="2.5" />
+            <circle r="26" fill="#1A3F75" stroke="#E8F3FF" strokeWidth="2.5" />
             <Sparkles size={16} x="-8" y="-8" style={{ color: "#FFFFFF" }} />
           </g>
 
@@ -181,9 +181,9 @@ const TechnologyOrbit = () => {
                 onMouseEnter={() => setHoveredTech(tech)}
                 onMouseLeave={() => setHoveredTech(null)}
               >
-                <circle r="14" fill="#FFFFFF" stroke="var(--color-medium-blue)" stroke-width="1.5" />
+                <circle r="14" fill="#FFFFFF" stroke="var(--color-medium-blue)" strokeWidth="1.5" />
                 <circle r="3" fill="var(--color-navy)" />
-                <text y="-18" text-anchor="middle" className="orbit-node-text">{tech.name}</text>
+                <text y="-18" textAnchor="middle" className="orbit-node-text">{tech.name}</text>
               </g>
             );
           })}

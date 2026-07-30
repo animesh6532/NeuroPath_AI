@@ -2,8 +2,8 @@ import json
 import random
 import time
 from sqlalchemy.orm import Session
-from app.db.database import SessionLocal
-from app.db.models import InterviewQuestion
+from backend.app.db.database import SessionLocal
+from backend.app.db.models import InterviewQuestion
 
 # 1. TAXONOMY CONFIGURATION
 INDUSTRIES = {

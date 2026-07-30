@@ -2,7 +2,7 @@ import random
 import json
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.db.models import AptitudeQuestion, AptitudeAttempt
+from backend.app.db.models import AptitudeQuestion, AptitudeAttempt
 
 CATEGORY_MAP = {
     "Quantitative Aptitude": "Quantitative Aptitude",
