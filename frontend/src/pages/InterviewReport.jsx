@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { interviewAPI } from "../api/endpoints";
 import { Printer, ArrowLeft, Loader2 } from "lucide-react";
+import { SessionManager } from "../utils/sessionManager";
 import "./AIInterview.css";
 
 function InterviewReport() {
@@ -9,7 +10,7 @@ function InterviewReport() {
   const navigate = useNavigate();
 
   const sessionId = useMemo(() => {
-    return location.state?.session_id || localStorage.getItem("interview_session_id");
+    return location.state?.session_id || SessionManager.getSessionId();
   }, [location.state]);
 
   const [report, setReport] = useState(null);

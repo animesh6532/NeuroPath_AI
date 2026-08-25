@@ -39,29 +39,6 @@ API.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Auto-detect and switch between ports 8000 and 8001 in case of local connection failure
-    if (!error.response && originalRequest && !originalRequest._portRetry) {
-      originalRequest._portRetry = true;
-      const currentBaseURL = API.defaults.baseURL || "";
-      let newBaseURL = currentBaseURL;
-
-      if (currentBaseURL.includes(":8001")) {
-        newBaseURL = currentBaseURL.replace(":8001", ":8000");
-      } else if (currentBaseURL.includes(":8000")) {
-        newBaseURL = currentBaseURL.replace(":8000", ":8001");
-      }
-
-      if (newBaseURL !== currentBaseURL) {
-        API.defaults.baseURL = newBaseURL;
-        originalRequest.baseURL = newBaseURL;
-        if (originalRequest.url && originalRequest.url.startsWith(currentBaseURL)) {
-          originalRequest.url = originalRequest.url.replace(currentBaseURL, newBaseURL);
-        }
-        console.warn(`Connection refused on ${currentBaseURL}. Retrying request with backend on ${newBaseURL}`);
-        return API(originalRequest);
-      }
-    }
-
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&

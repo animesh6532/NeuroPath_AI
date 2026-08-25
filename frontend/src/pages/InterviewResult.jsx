@@ -8,6 +8,7 @@ import {
   Flame, BookOpen, Clock, Activity 
 } from "lucide-react";
 import { GlassCard, GlassButton, GlassBadge, GlassProgress, GlassTabs } from "../components/ui/DesignSystem";
+import { SessionManager } from "../utils/sessionManager";
 import "./AIInterview.css";
 
 const CircularProgress = ({ score, label, color = "#AFCBE8" }) => {
@@ -48,7 +49,7 @@ function InterviewResult() {
   const navigate = useNavigate();
 
   const sessionId = useMemo(() => {
-    return location.state?.session_id || localStorage.getItem("interview_session_id");
+    return location.state?.session_id || SessionManager.getSessionId();
   }, [location.state]);
 
   const [activeTab, setActiveTab] = useState("overview"); 

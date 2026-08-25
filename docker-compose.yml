@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: neuropath_backend
     ports:
-      - "8001:8001"
+      - "8000:8000"
     environment:
       - DATABASE_URL=sqlite:///./neuro.db
       - SECRET_KEY=prod_secret_key_1234567890_abc
@@ -17,7 +17,7 @@ services:
       - MODEL_PATH=models
       - ALLOWED_ORIGINS=http://localhost:3000
       - FRONTEND_URL=http://localhost:3000
-      - BACKEND_URL=http://localhost:8001
+      - BACKEND_URL=http://localhost:8000
     volumes:
       - neuropath_uploads:/app/uploads
       - neuropath_reports:/app/reports
@@ -32,7 +32,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - VITE_API_URL=http://localhost:8001
+      - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
     restart: always

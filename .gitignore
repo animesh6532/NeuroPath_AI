@@ -1,236 +1,12 @@
-###############################################################################
-# NeuroPath AI
-# Production .gitignore
-###############################################################################
+# ===============================================================================
+# NeuroPath AI - ROOT .gitignore
+# Rebuilt to ensure correct negation precedence and prevent tracking junk files
+# ===============================================================================
 
-############################
-# Operating System
-############################
-.DS_Store
-Thumbs.db
-desktop.ini
-Icon?
-ehthumbs.db
-
-############################
-# Python
-############################
-__pycache__/
-*.py[cod]
-*$py.class
-*.pyo
-*.pyd
-
-############################
-# Virtual Environment
-############################
-venv/
-.venv/
-env/
-ENV/
-virtualenv/
-
-############################
-# Environment Variables
-############################
-.env
-.env.*
-!.env.example
-
-############################
-# Python Tooling
-############################
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.tox/
-.nox/
-.coverage
-.coverage.*
-htmlcov/
-.cache/
-
-############################
-# FastAPI
-############################
-*.log
-logs/
-uvicorn.log
-
-############################
-# SQLite
-############################
-*.sqlite
-*.sqlite3
-*.db
-
-############################
-# Node
-############################
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-############################
-# Vite
-############################
-frontend/dist/
-dist/
-
-############################
-# Build
-############################
-build/
-out/
-release/
-debug/
-
-############################
-# IDE
-############################
-.vscode/*
-!.vscode/extensions.json
-
-.idea/
-*.iml
-
-############################
-# Git
-############################
-.git/
-.gitignore.bak
-
-############################
-# Mac
-############################
-.AppleDouble
-.LSOverride
-
-############################
-# Windows
-############################
-$RECYCLE.BIN/
-
-############################
-# Linux
-############################
-*~
-
-############################
-# Temporary Files
-############################
-tmp/
-temp/
-*.tmp
-*.swp
-*.swo
-
-############################
-# Jupyter
-############################
-.ipynb_checkpoints/
-
-############################
-# PyCharm
-############################
-.idea/
-
-############################
-# VS Code Testing
-############################
-.history/
-
-############################
-# Coverage
-############################
-coverage/
-coverage.xml
-
-############################
-# TensorFlow / PyTorch
-############################
-checkpoints/
-runs/
-wandb/
-lightning_logs/
-tensorboard/
-events.out.tfevents.*
-
-############################
-# Model Weights
-############################
-*.ckpt
-*.pt
-*.pth
-*.onnx
-*.pb
-
-############################
-# OpenCV
-############################
-captures/
-recordings/
-frames/
-videos/
-
-############################
-# Generated Reports
-############################
-reports/
-generated_reports/
-evaluation_reports/
-
-############################
-# Resume Uploads
-############################
-uploads/
-temp_uploads/
-
-############################
-# AI Generated Files
-############################
-generated/
-cache/
-embeddings/
-vector_store/
-faiss_index/
-chroma_db/
-index_store/
-
-############################
-# API Keys
-############################
-secrets.json
-credentials.json
-service_account.json
-
-############################
-# Logs
-############################
-*.log
-
-############################
-# Archives
-############################
-*.zip
-*.7z
-*.rar
-*.tar
-*.gz
-
-############################
-# Misc
-############################
-*.bak
-*.old
-*.orig
-
-###############################################################################
-# Keep Important Files
-###############################################################################
-
+# ───────────────────────────────────────────────────────────────────────────────
+# Whitelisted Source Folders & Configurations
+# (Allows tracking for source directories; ignore rules below override this)
+# ───────────────────────────────────────────────────────────────────────────────
 !README.md
 !LICENSE
 !requirements.txt
@@ -244,3 +20,173 @@ service_account.json
 !backend/app/**
 !frontend/src/**
 !frontend/public/**
+
+# Whitelist required face-detection ONNX models for local runtime execution
+!backend/face_detection_yunet.onnx
+!backend/models/face_detection_yunet_2023mar.onnx
+
+# Whitelist environment template
+!.env.example
+
+# Whitelist shared IDE configurations
+!.vscode/settings.json
+!.vscode/extensions.json
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Node / Frontend Dependencies
+# ───────────────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Build Output
+# ───────────────────────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+release/
+debug/
+.vite/
+coverage/
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Python
+# ───────────────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.egg-info/
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Virtual Environments
+# ───────────────────────────────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+virtualenv/
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Environment / Secrets
+# ───────────────────────────────────────────────────────────────────────────────
+.env
+.env.*
+secrets.json
+credentials.json
+service_account.json
+*.pem
+*.key
+*.crt
+*.secret
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Databases
+# ───────────────────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+!backend/app/db/migrations/**  # Ensure migration scripts are committed
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# AI / ML Caches & Checkpoints
+# ───────────────────────────────────────────────────────────────────────────────
+checkpoints/
+runs/
+wandb/
+lightning_logs/
+tensorboard/
+events.out.tfevents.*
+*.ckpt
+*.pt
+*.pth
+*.pb
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# AI Generated Caches & Vector Stores
+# ───────────────────────────────────────────────────────────────────────────────
+generated/
+cache/
+embeddings/
+vector_store/
+faiss_index/
+chroma_db/
+index_store/
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Uploads / Generated Reports
+# ───────────────────────────────────────────────────────────────────────────────
+uploads/
+temp_uploads/
+reports/
+generated_reports/
+evaluation_reports/
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# OpenCV / Proctoring Feeds
+# ───────────────────────────────────────────────────────────────────────────────
+captures/
+recordings/
+frames/
+videos/
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# IDE / Tooling
+# ───────────────────────────────────────────────────────────────────────────────
+.vscode/*
+.idea/
+*.iml
+.history/
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# OS Files
+# ───────────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.lnk
+.AppleDouble
+.LSOverride
+ehthumbs.db
+Icon?
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Testing / Coverage
+# ───────────────────────────────────────────────────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Temporary Files
+# ───────────────────────────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+.ipynb_checkpoints/

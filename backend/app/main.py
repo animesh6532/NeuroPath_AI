@@ -22,7 +22,7 @@ from backend.app.routes.health import router as health_router
 from backend.app.routes.auth import router as auth_router
 from backend.app.routes.proctoring import router as proctor_router
 from backend.app.routes.assistant import router as assistant_router
-from backend.app.routes.interview import router as interview_router
+from backend.app.interview.routes import router as interview_router
 from backend.app.routes.resume import router as resume_router
 from backend.app.routes.coding import router as coding_router
 from backend.app.routes.aptitude import router as aptitude_router
@@ -44,6 +44,13 @@ def startup_db_init():
         os.makedirs(d, exist_ok=True)
         
     Base.metadata.create_all(bind=engine)
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE interview_sessions ADD COLUMN session_status VARCHAR DEFAULT 'CREATED'"))
+            conn.commit()
+    except Exception as e:
+        pass
     from backend.app.services.matching_engine import init_matching_cache
     init_matching_cache()
     from backend.app.services.question_graph import seed_interview_questions

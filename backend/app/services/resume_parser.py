@@ -315,25 +315,53 @@ def parse_resume(text: str) -> dict:
     research_list = []
     
     current_proj = None
+    prev_was_bullet = False
+    bullet_chars = ("•", "-", "*", "▪", "◦", "✓", "+", "—", "–", "■")
+    
     for line in sections["projects"]:
-        is_new_proj = len(line) < 50 and any(keyword in line.lower() for keyword in ["project", "portfolio", "system", "app", "website", "platform", "model"])
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+            
+        starts_with_bullet = line_stripped.startswith(bullet_chars) or re.match(r'^\d+\.', line_stripped) is not None
+        
+        # Check if this line starts a new project
+        is_new_proj = False
+        
+        # Check keywords
+        has_keywords = len(line_stripped) < 70 and any(keyword in line_stripped.lower() for keyword in [
+            "project", "portfolio", "system", "app", "website", "platform", "model", "tool", 
+            "application", "solver", "compiler", "engine", "pipeline", "simulator", "dashboard", 
+            "network", "detector", "classifier", "matcher", "bot", "interface"
+        ])
+        
+        # Heuristics for bullet lists: short lines without bullets, following a bullet or at start
+        if not starts_with_bullet and len(line_stripped) < 80:
+            if current_proj is None or prev_was_bullet:
+                is_new_proj = True
+                
+        if has_keywords:
+            is_new_proj = True
+            
         if is_new_proj:
             if current_proj:
                 projects_list.append(current_proj)
             current_proj = {
-                "name": line,
+                "name": line_stripped,
                 "description": "",
                 "technologies": []
             }
         else:
             if current_proj:
-                current_proj["description"] += " " + line
+                current_proj["description"] += " " + line_stripped
             else:
                 current_proj = {
-                    "name": "Project Task",
-                    "description": line,
+                    "name": line_stripped if len(line_stripped) < 50 else "Project Task",
+                    "description": line_stripped,
                     "technologies": []
                 }
+        prev_was_bullet = starts_with_bullet
+        
     if current_proj:
         projects_list.append(current_proj)
 

@@ -4,6 +4,7 @@ import { AppContext } from "../contexts/AppContext";
 import { interviewAPI } from "../api/endpoints";
 import { motion } from "framer-motion";
 import { Mic, Video, Award, Play, FileWarning, BrainCircuit } from "lucide-react";
+import { SessionManager } from "../utils/sessionManager";
 import { GlassCard, GlassButton, GlassBadge } from "../components/ui/DesignSystem";
 import "./AIInterview.css";
 
@@ -46,6 +47,21 @@ function AIInterview() {
         return;
       }
 
+      // Check session token
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Session token not found. Please log in first.");
+        setLoading(false);
+        return;
+      }
+
+      // Check resume profile loaded
+      if (!analysisData || !analysisData.detected_skills || analysisData.detected_skills.length === 0) {
+        setError("Resume profile not loaded. Please parse your resume first.");
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         email: localStorage.getItem("user_email") || "candidate@neuropath.ai",
         name: localStorage.getItem("user_name") || "Candidate",
@@ -56,17 +72,39 @@ function AIInterview() {
 
       const response = await interviewAPI.start(payload);
 
-      if (!response.data || !response.data.session_id) {
-        throw new Error("Invalid session response from backend.");
+      if (!response || !response.success || !response.data?.session_id) {
+        setError("Backend failed to create active session. Please check backend connection.");
+        setLoading(false);
+        return;
       }
+
+      const sessionObj = response.data;
+      if (!sessionObj.blueprint || sessionObj.blueprint.length === 0) {
+        setError("Backend failed to generate interview blueprint.");
+        setLoading(false);
+        return;
+      }
+
+      if (!sessionObj.first_question || !sessionObj.first_question.question_text) {
+        setError("Backend failed to generate question plan.");
+        setLoading(false);
+        return;
+      }
+
+      // Persist to authoritative session storage
+      SessionManager.setSessionId(sessionObj.session_id, "Candidate clicks Start Interview", "AIInterview.jsx");
+      localStorage.setItem("interview_role", sessionObj.role);
+      localStorage.setItem("interview_level", sessionObj.level);
+      localStorage.setItem("interview_blueprint", JSON.stringify(sessionObj.blueprint));
+      localStorage.setItem("interview_first_question", JSON.stringify(sessionObj.first_question));
 
       navigate("/ai-interview/live", {
         state: {
-          session_id: response.data.session_id,
-          role: response.data.role,
-          level: response.data.level,
-          blueprint: response.data.blueprint,
-          first_question: response.data.first_question,
+          session_id: sessionObj.session_id,
+          role: sessionObj.role,
+          level: sessionObj.level,
+          blueprint: sessionObj.blueprint,
+          first_question: sessionObj.first_question,
           resumeName: "My Resume",
         },
       });

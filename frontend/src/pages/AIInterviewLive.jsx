@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useContext } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { SessionManager } from "../utils/sessionManager";
 import CameraMonitor from "../components/CameraMonitor";
 import { AppContext } from "../contexts/AppContext";
 import { interviewAPI } from "../api/endpoints";
@@ -7,7 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mic, Clock, ShieldAlert, AlertTriangle, Radio, 
   RotateCcw, Play, CheckCircle, Video, HelpCircle, 
-  MessageSquareCode, Shield, Check, X, BrainCircuit, Sparkles
+  MessageSquareCode, Shield, Check, X, BrainCircuit, Sparkles,
+  Volume2, VolumeX, ArrowRight, Camera, Clock3
 } from "lucide-react";
 import { GlassCard, GlassButton, GlassBadge, GlassProgress } from "../components/ui/DesignSystem";
 import "./AIInterview.css";
@@ -15,9 +17,6 @@ import "./AIInterview.css";
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
-// Welcome sequence sentences will be generated dynamically based on candidate profile.
-
-// Round Transition speech helper
 const getRoundIntroPhrase = (roundName, roundNumber) => {
   if (roundNumber === 1) return "";
   const nameLower = roundName ? roundName.toLowerCase() : "";
@@ -46,10 +45,7 @@ const getRoundIntroPhrase = (roundName, roundNumber) => {
 const EIAvatar = ({ isSpeaking }) => {
   return (
     <svg width="80" height="80" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ zIndex: 10 }}>
-      {/* Head Glow / Background */}
       <circle cx="32" cy="32" r="28" fill="url(#avatar-grad)" />
-      
-      {/* Eyes with Blink Animation */}
       <motion.ellipse
         cx="24"
         cy="26"
@@ -68,8 +64,6 @@ const EIAvatar = ({ isSpeaking }) => {
         transition={{ repeat: Infinity, duration: 4, times: [0, 0.9, 0.95, 1, 1] }}
         fill="#fff"
       />
-      
-      {/* Mouth with Speaking Animation */}
       <motion.path 
         d={isSpeaking ? "M24,40 Q32,48 40,40" : "M26,42 Q32,42 38,42"} 
         animate={{ d: isSpeaking ? ["M24,40 Q32,43 40,40", "M24,40 Q32,48 40,40"] : "M26,42 Q32,42 38,42" }}
@@ -79,9 +73,7 @@ const EIAvatar = ({ isSpeaking }) => {
         strokeLinecap="round" 
         fill="none"
       />
-      
       <circle cx="32" cy="32" r="26" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-      
       <defs>
         <linearGradient id="avatar-grad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#4f46e5" />
@@ -97,11 +89,79 @@ function AIInterviewLive() {
   const location = useLocation();
   const { setInterviewData } = useContext(AppContext);
 
-  const sessionId = useMemo(() => location.state?.session_id, [location.state]);
-  const role = useMemo(() => location.state?.role || "Software Developer", [location.state]);
-  const level = useMemo(() => location.state?.level || "Entry", [location.state]);
-  const blueprint = useMemo(() => location.state?.blueprint || [], [location.state]);
-  const resumeName = location.state?.resumeName || "Resume";
+  // Authoritative Session Details
+  const [sessionId, setSessionId] = useState(null);
+  const [role, setRole] = useState(location.state?.role || "Software Developer");
+  const [level, setLevel] = useState(location.state?.level || "Entry");
+  const [blueprint, setBlueprint] = useState(location.state?.blueprint || []);
+  const [firstQuestion, setFirstQuestion] = useState(location.state?.first_question || null);
+
+  // State Machine: "IDLE", "STARTING", "INTRODUCTION", "QUESTION", "LISTENING", "PROCESSING", "COMPLETED", "ERROR"
+  const [interviewState, setInterviewState] = useState("IDLE");
+  const [errorDetails, setErrorDetails] = useState("");
+
+  // Proctoring Violations & Pauses
+  const [isPaused, setIsPaused] = useState(false);
+  const [activeWarning, setActiveWarning] = useState("");
+  const [recoveryCountdown, setRecoveryCountdown] = useState(15);
+  const [violations, setViolations] = useState([]);
+  const [warningCount, setWarningCount] = useState(0);
+
+  // Compliance Flags
+  const [faceMissing, setFaceMissing] = useState(false);
+  const [multipleFaces, setMultipleFaces] = useState(false);
+  const [isFullscreenActive, setIsFullscreenActive] = useState(true);
+  const [needsFullscreenActivation, setNeedsFullscreenActivation] = useState(false);
+  const [tabStatus, setTabStatus] = useState("Connected");
+
+  // Proctoring Telemetry (Display only)
+  const [cameraStatus, setCameraStatus] = useState("GRANTED");
+  const [micStatus, setMicStatus] = useState("GRANTED");
+  const [faceConfidence, setFaceConfidence] = useState(1.0);
+  const [brightness, setBrightness] = useState(100.0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Active question metadata
+  const [currentQuestion, setCurrentQuestion] = useState("");
+  const [currentAnswer, setCurrentAnswer] = useState("");
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [questionTimeLeft, setQuestionTimeLeft] = useState(60);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [roundName, setRoundName] = useState("Introduction");
+  const [currentDifficulty, setCurrentDifficulty] = useState("Medium");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState("AI Interviewer is ready.");
+
+  // Speech API State
+  const [isAISpeaking, setIsAISpeaking] = useState(false);
+  const [isIntroMuted, setIsIntroMuted] = useState(false);
+  const [transcriptionStatus, setTranscriptionStatus] = useState("Listening...");
+  const [hasSpoken, setHasSpoken] = useState(false);
+  const [silenceTimeLeft, setSilenceTimeLeft] = useState(10);
+  const [isCandidateSpeaking, setIsCandidateSpeaking] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  // Developer mode details drawer
+  const [showDevMode, setShowDevMode] = useState(false);
+
+  // Refs
+  const recognitionRef = useRef(null);
+  const timerRef = useRef(null);
+  const recoveryTimerRef = useRef(null);
+  const lastSpeechTimeRef = useRef(Date.now());
+  const answerTextRef = useRef("");
+  const interviewStateRef = useRef("IDLE");
+  const consecutiveMissingFaceRef = useRef(0);
+  const consecutiveMultipleFacesRef = useRef(0);
+
+  // Sync state refs to prevent closure staleness
+  useEffect(() => {
+    interviewStateRef.current = interviewState;
+  }, [interviewState]);
+
+  useEffect(() => {
+    answerTextRef.current = currentAnswer;
+  }, [currentAnswer]);
 
   const candidateName = useMemo(() => {
     const rawName = location.state?.name;
@@ -114,578 +174,546 @@ function AIInterviewLive() {
     return "Candidate";
   }, [location.state]);
 
-  const INTRO_SENTENCES = useMemo(() => [
-    `Hello ${candidateName}, and welcome to NeuroPath AI.`,
-    "I'm your AI Interview Assistant, and I'll be conducting today's interview.",
-    `I've reviewed your profile and prepared a personalized ${level}-level interview for the ${role} position.`,
-    "Please answer naturally and take your time.",
-    "Once you're ready, we'll begin with the first question.",
-    "Good luck!"
-  ], [candidateName, role, level]);
-
-  const [isAISpeaking, setIsAISpeaking] = useState(false);
-
-  // Phase 11 Persistence check
-  const introPlayedKey = useMemo(() => `intro_completed_${sessionId}`, [sessionId]);
-  const getInitialPhase = () => {
-    if (!sessionId) return "INITIALIZING";
-    const completed = localStorage.getItem(`intro_completed_${sessionId}`) === "true";
-    return completed ? "QUESTION" : "INITIALIZING";
-  };
-
-  // Phase 9 Stages: INITIALIZING, INTRODUCTION, READY, QUESTION, SUBMITTING, COMPLETED, TERMINATED
-  const [phase, setPhase] = useState(getInitialPhase); 
-  const [questionSubPhase, setQuestionSubPhase] = useState("PREPARING"); // PREPARING, ANSWERING inside QUESTION phase
-
-  // Question State & Metadata (Phase 4 Adaptive Timers)
-  const [currentQuestion, setCurrentQuestion] = useState(
-    location.state?.first_question?.question_text || "Tell me about your background."
-  );
-  const [questionTimeLeft, setQuestionTimeLeft] = useState(
-    location.state?.first_question?.expected_duration || location.state?.first_question?.estimated_time || 60
-  );
-  const [questionType, setQuestionType] = useState(
-    location.state?.first_question?.question_type || "behavioral"
-  );
-  const [currentDifficulty, setCurrentDifficulty] = useState(
-    location.state?.first_question?.difficulty || "Medium"
-  );
-  const [roundName, setRoundName] = useState(
-    location.state?.first_question?.round_name || "Introduction"
-  );
-  const [roundNumber, setRoundNumber] = useState(
-    location.state?.first_question?.round_number || 1
-  );
-
-  const [timeLeft, setTimeLeft] = useState(questionTimeLeft);
-  const [currentAnswer, setCurrentAnswer] = useState("");
-  const [isListening, setIsListening] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState("AI Interviewer is starting...");
-  const [violations, setViolations] = useState([]);
-  const [warningCount, setWarningCount] = useState(0);
-  const [activeWarning, setActiveWarning] = useState("");
-
-  // Centralized Proctoring Engine State (Phase 5, 8, 9)
-  const [proctorState, setProctorState] = useState("INITIALIZING");
-  const [faceConfidence, setFaceConfidence] = useState(0.0);
-  const [trackingConfidence, setTrackingConfidence] = useState(0.0);
-  const [landmarkConfidence, setLandmarkConfidence] = useState(0.0);
-  const [yaw, setYaw] = useState(0.0);
-  const [pitch, setPitch] = useState(0.0);
-  const [roll, setRoll] = useState(0.0);
-  const [brightness, setBrightness] = useState(0.0);
-  const [lastDetectionTime, setLastDetectionTime] = useState("Never");
-  const [violationStart, setViolationStart] = useState(null);
-  const [recoveryStart, setRecoveryStart] = useState(null);
-  const [proctorConfig, setProctorConfig] = useState({
-    detection_threshold: 0.6,
-    frame_rate_ms: 500,
-    warning_timeout_s: 3.0,
-    pause_timeout_s: 15.0,
-    lighting_min: 50.0,
-    lighting_max: 220.0
-  });
-
-  // Calibration and developer diagnostics states (Phase 4, 9)
-  const [calibrationTime, setCalibrationTime] = useState(0.0);
-  const [integrityScore, setIntegrityScore] = useState(100);
-  const [proctorLogs, setProctorLogs] = useState(["System initialized."]);
-  const [lastTransition, setLastTransition] = useState("None");
-  const [activeBlockerReason, setActiveBlockerReason] = useState("Initializing systems...");
-
-  const proctorStateRef = useRef("INITIALIZING");
+  // Network offline listener
   useEffect(() => {
-    proctorStateRef.current = proctorState;
-  }, [proctorState]);
-
-  const logProctorState = (fromState, toState, reasonText = "") => {
-    const timestamp = new Date().toLocaleTimeString();
-    const transitionStr = `${fromState} -> ${toState}`;
-    const logMsg = `[${timestamp}] ${transitionStr}${reasonText ? ` (${reasonText})` : ""}`;
-    setProctorLogs((prev) => [logMsg, ...prev].slice(0, 50));
-    setLastTransition(transitionStr);
-  };
-
-  // Load proctoring thresholds on mount (Phase 10 Configuration)
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const res = await interviewAPI.getProctorConfig();
-        if (res.data) {
-          setProctorConfig(res.data);
-        }
-      } catch (err) {
-        console.warn("Failed fetching proctoring thresholds:", err);
-      }
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
-    fetchConfig();
   }, []);
 
-  // Voice Activity Detection (VAD) states
-  const [isCandidateSpeaking, setIsCandidateSpeaking] = useState(false);
-  const [hasSpoken, setHasSpoken] = useState(false);
-  const [silenceTimeLeft, setSilenceTimeLeft] = useState(10);
-  const [transcriptionStatus, setTranscriptionStatus] = useState("Listening...");
+  // 1. Startup Controller (Initiated when Start Interview is clicked)
+  const startInterviewSequence = async () => {
+    setInterviewState("STARTING");
+    setErrorDetails("");
+    setStatus("Initializing secure interview session...");
 
-  // Welcome sequence typewriter / mute controls (Phase 4, 5, 6)
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
-  const [typedSentence, setTypedSentence] = useState("");
-  const [isIntroMuted, setIsIntroMuted] = useState(false);
-  const [isIntroFinished, setIsIntroFinished] = useState(false);
-  const [cameraStatus, setCameraStatus] = useState("CHECKING");
-  const [micStatus, setMicStatus] = useState("CHECKING");
-  const [typedWords, setTypedWords] = useState([]);
-
-  // Fullscreen proctoring states
-  const [isFullscreenActive, setIsFullscreenActive] = useState(true);
-  const [needsFullscreenActivation, setNeedsFullscreenActivation] = useState(false);
-  const [exitedFullscreenWarning, setExitedFullscreenWarning] = useState(false);
-
-  const recognitionRef = useRef(null);
-  const timerRef = useRef(null);
-  const introTimerRef = useRef(null);
-  const lastSpeechTimeRef = useRef(Date.now());
-  const answerTextRef = useRef("");
-  const scrollContainerRef = useRef(null);
-  const subtitleContainerRef = useRef(null);
-  
-  const phaseRef = useRef(phase);
-  const submittingRef = useRef(isSubmitting);
-
-  useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
-
-  useEffect(() => {
-    submittingRef.current = isSubmitting;
-  }, [isSubmitting]);
-
-  useEffect(() => {
-    answerTextRef.current = currentAnswer;
-  }, [currentAnswer]);
-
-  // Auto-scroll transcription element (Phase 6)
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-    }
-  }, [currentAnswer]);
-
-  // Auto-scroll welcome sequence subtitles
-  useEffect(() => {
-    if (subtitleContainerRef.current) {
-      const activeEl = subtitleContainerRef.current.querySelector(".intro-subtitle-sentence.active");
-      if (activeEl) {
-        activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    try {
+      // Validate Session ID
+      const activeSessionId = SessionManager.getSessionId() || location.state?.session_id || localStorage.getItem("interview_session_id");
+      if (!activeSessionId) {
+        throw new Error("No active interview session ID found. Please go back to the setup page and start a new interview.");
       }
-    }
-  }, [currentSentenceIndex, typedWords]);
+      setSessionId(activeSessionId);
 
-  // Session Prerequisite Check
-  useEffect(() => {
-    if (!sessionId) {
-      alert("No active interview session found. Returning to setup.");
-      navigate("/interview");
-    }
-  }, [sessionId, navigate]);
+      // Validate session with database
+      const response = await interviewAPI.validateSession(activeSessionId);
+      if (!response || !response.success || !response.data) {
+        throw new Error("Session validation failed. The interview session could not be verified.");
+      }
 
-  // Mandatory Fullscreen & Anti-Escape Proctoring Loops
-  useEffect(() => {
-    const enterFullscreen = async () => {
+      const data = response.data;
+      if (data.role) setRole(data.role);
+      if (data.level) setLevel(data.level);
+      if (data.blueprint) setBlueprint(data.blueprint);
+      
+      const firstQ = location.state?.first_question || (data.history && data.history[0]) || JSON.parse(localStorage.getItem("interview_first_question"));
+      if (firstQ) {
+        setFirstQuestion(firstQ);
+      }
+
+      // Request hardware access permissions (webcam & microphone)
+      setStatus("Requesting camera and microphone access...");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        stream.getTracks().forEach((track) => track.stop()); // close immediately so components can request them clean
+        setCameraStatus("GRANTED");
+        setMicStatus("GRANTED");
+      } catch (permErr) {
+        setCameraStatus("ERROR");
+        setMicStatus("ERROR");
+        throw new Error("Camera and microphone access are required to start the interview.");
+      }
+
+      // Enter fullscreen
+      setStatus("Requesting secure fullscreen...");
       try {
         if (document.documentElement.requestFullscreen) {
           await document.documentElement.requestFullscreen();
           setIsFullscreenActive(true);
           setNeedsFullscreenActivation(false);
-          // Auto-progress removed to enforce proctoring calibration gate
         }
-      } catch (err) {
-        console.warn("Auto-fullscreen rejected. Displaying manual prompt:", err);
+      } catch (fsErr) {
+        console.warn("Fullscreen request rejected by browser:", fsErr);
         setNeedsFullscreenActivation(true);
       }
-    };
 
-    const handleFullscreenChange = () => {
-      const isCurrentlyFs = !!document.fullscreenElement;
-      setIsFullscreenActive(isCurrentlyFs);
-      
-      if (!isCurrentlyFs && phaseRef.current !== "COMPLETED" && phaseRef.current !== "TERMINATED" && phaseRef.current !== "INITIALIZING") {
-        setExitedFullscreenWarning(true);
-        setTimeout(() => {
-          handleEarlyTermination();
-        }, 2000);
-      }
-    };
+      // Synchronise session state to READY on backend
+      await SessionManager.updateBackendState("READY", "Startup verification completed successfully", "AIInterviewLive.jsx");
 
-    const handleVisibility = () => {
-      if (document.hidden && phaseRef.current !== "INITIALIZING") {
-        handleViolation("Tab switched / Background activity");
-      }
-    };
-
-    const handleWindowBlur = () => {
-      if (phaseRef.current !== "INITIALIZING") {
-        handleViolation("Focus lost / Window switch");
-      }
-    };
-
-    const handleBeforeUnload = (e) => {
-      e.preventDefault();
-      e.returnValue = "Leaving this page will forfeit the proctored interview. Are you sure?";
-      return e.returnValue;
-    };
-
-    window.history.pushState(null, null, window.location.href);
-    const handlePopState = () => {
-      window.history.pushState(null, null, window.location.href);
-      if (phaseRef.current !== "INITIALIZING") {
-        handleViolation("Attempted browser back navigation");
-      }
-    };
-
-    const handleKeyDown = (e) => {
-      if (e.keyCode === 123) {
-        e.preventDefault();
-        handleViolation("Opened DevTools (F12)");
-      }
-      if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
-        e.preventDefault();
-        handleViolation("Opened DevTools shortcut");
-      }
-      if (e.ctrlKey && e.keyCode === 85) {
-        e.preventDefault();
-        handleViolation("View Source shortcut");
-      }
-    };
-
-    enterFullscreen();
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("blur", handleWindowBlur);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("blur", handleWindowBlur);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener("keydown", handleKeyDown);
-      speechSynthesis.cancel();
-      stopListening();
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (introTimerRef.current) clearTimeout(introTimerRef.current);
-    };
-  }, []);
-
-  // Phase 3 & 4 Welcome Sequence Typewriter effect (Word-by-word reveal)
-  useEffect(() => {
-    if (phase !== "INTRODUCTION") return;
-    
-    const sentence = INTRO_SENTENCES[currentSentenceIndex];
-    const words = sentence.split(" ");
-    setTypedWords([]);
-    
-    let wordIdx = 0;
-    const interval = setInterval(() => {
-      if (proctorStateRef.current !== "RUNNING") return;
-      setTypedWords((prev) => [...prev, words[wordIdx]]);
-      wordIdx++;
-      if (wordIdx >= words.length) {
-        clearInterval(interval);
-      }
-    }, 220); 
-    
-    return () => clearInterval(interval);
-  }, [currentSentenceIndex, phase, INTRO_SENTENCES]);
-
-  // Phase 3 & 4 Welcome Sequence voice triggers & adaptive fallback timers
-  useEffect(() => {
-    if (phase !== "INTRODUCTION") {
-      speechSynthesis.cancel();
-      if (introTimerRef.current) clearTimeout(introTimerRef.current);
-      return;
-    }
-
-    const currentSentence = INTRO_SENTENCES[currentSentenceIndex];
-
-    if (isIntroMuted) {
-      speechSynthesis.cancel();
-      // Calculate length-based timeout for visual reading when muted
-      const readingDuration = currentSentence.length * 50 + 1200; 
-      
-      if (introTimerRef.current) clearTimeout(introTimerRef.current);
-      introTimerRef.current = setTimeout(() => {
-        advanceSentence();
-      }, readingDuration);
-    } else {
-      if (introTimerRef.current) clearTimeout(introTimerRef.current);
-      speakQuestion(currentSentence, () => {
-        advanceSentence();
-      });
-    }
-
-    return () => {
-      speechSynthesis.cancel();
-      if (introTimerRef.current) clearTimeout(introTimerRef.current);
-    };
-  }, [currentSentenceIndex, phase, isIntroMuted, INTRO_SENTENCES, proctorState]);
-
-  const advanceSentence = () => {
-    if (currentSentenceIndex < INTRO_SENTENCES.length - 1) {
-      setCurrentSentenceIndex((prev) => prev + 1);
-    } else {
-      setIsIntroFinished(true);
-      // Transition directly to QUESTION
-      setTimeout(() => {
-        localStorage.setItem(introPlayedKey, "true");
-        setPhase("QUESTION");
-        setQuestionSubPhase("PREPARING");
-      }, 1000);
+      // Transition to Introduction
+      setInterviewState("INTRODUCTION");
+    } catch (err) {
+      console.error("[Startup Failure]", err);
+      setErrorDetails(err.message || "Failed to initialize stateful interview.");
+      setInterviewState("ERROR");
     }
   };
 
-  // Phase 5, 8, 9 Live question transition and answering logic
+  // 2. Central Controller State Machine transitions trigger
   useEffect(() => {
-    if (!sessionId || phase !== "QUESTION") return;
+    const handleStateTrigger = async () => {
+      const state = interviewState;
+      console.log(`[Interview State Machine] Transition to: ${state}`);
 
-    if (questionSubPhase === "PREPARING") {
-      stopListening();
-      setCurrentAnswer("");
-      setHasSpoken(false);
-      setSilenceTimeLeft(10);
-      setTranscriptionStatus("Listening...");
-      setStatus("AI Interviewer is speaking...");
+      if (state === "INTRODUCTION") {
+        setStatus("Playing welcome introduction...");
+        await SessionManager.updateBackendState("ACTIVE", "Starting welcome introduction", "AIInterviewLive.jsx");
+        
+        const introText = "Welcome to NeuroPath AI. This interview will evaluate your technical knowledge, projects, communication, and problem-solving skills.";
+        speakQuestion(introText, () => {
+          loadFirstQuestion();
+        });
+      }
 
-      const introPhrase = getRoundIntroPhrase(roundName, roundNumber);
-      const fullText = introPhrase ? `${introPhrase} ${currentQuestion}` : currentQuestion;
+      else if (state === "QUESTION") {
+        setStatus("AI Interviewer is speaking...");
+        setCurrentAnswer("");
+        setHasSpoken(false);
+        setSilenceTimeLeft(10);
+        setTranscriptionStatus("Listening...");
 
-      speakQuestion(fullText, () => {
-        setQuestionSubPhase("ANSWERING");
-      });
+        const introPhrase = getRoundIntroPhrase(roundName, roundNumber);
+        const fullText = introPhrase ? `${introPhrase} ${currentQuestion}` : currentQuestion;
 
-    } else if (questionSubPhase === "ANSWERING") {
-      setTimeLeft(questionTimeLeft);
-      setStatus("Microphone active. Speak your answer now...");
-      startListening();
-      lastSpeechTimeRef.current = Date.now();
-      setSilenceTimeLeft(10);
-      setHasSpoken(false);
-      setIsCandidateSpeaking(false);
-      setTranscriptionStatus("Listening...");
+        speakQuestion(fullText, () => {
+          setInterviewState("LISTENING");
+        });
+      }
 
-      // Unified Adaptive Timer & Voice Activity Detection Loop
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        if (proctorStateRef.current !== "RUNNING") return;
-        const timeSinceSpeech = Date.now() - lastSpeechTimeRef.current;
-        const activeSpeaking = timeSinceSpeech < 2000;
-        setIsCandidateSpeaking(activeSpeaking);
+      else if (state === "LISTENING") {
+        setStatus("Microphone active. Speak your answer now...");
+        startListening();
+        lastSpeechTimeRef.current = Date.now();
+        setSilenceTimeLeft(10);
+        setHasSpoken(false);
+        setIsCandidateSpeaking(false);
+        setTranscriptionStatus("Listening...");
 
-        const currentText = answerTextRef.current.trim();
-        const userHasSpoken = currentText.length > 0;
-        if (userHasSpoken) {
-          setHasSpoken(true);
-        }
-
-        if (activeSpeaking) {
-          setTranscriptionStatus("Transcribing...");
-          setSilenceTimeLeft(10);
-        } else {
-          setTranscriptionStatus("Listening...");
-          
-          if (userHasSpoken) {
-            setSilenceTimeLeft((prev) => {
-              if (prev <= 1) {
-                clearInterval(timerRef.current);
-                submitAnswerAndAdvance();
-                return 0;
-              }
-              return prev - 1;
-            });
-          } else {
-            setTimeLeft((prev) => {
-              if (prev <= 1) {
-                clearInterval(timerRef.current);
-                submitAnswerAndAdvance();
-                return 0;
-              }
-              return prev - 1;
-            });
+        // Setup the question timer countdown loop
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+          if (interviewStateRef.current !== "LISTENING") {
+            clearInterval(timerRef.current);
+            return;
           }
+
+          // If paused by proctoring overlay, freeze timers and ignore silence
+          if (isPaused) return;
+
+          const timeSinceSpeech = Date.now() - lastSpeechTimeRef.current;
+          const activeSpeaking = timeSinceSpeech < 2000;
+          setIsCandidateSpeaking(activeSpeaking);
+
+          const currentText = answerTextRef.current.trim();
+          const userHasSpoken = currentText.length > 0;
+          if (userHasSpoken) {
+            setHasSpoken(true);
+          }
+
+          if (activeSpeaking) {
+            setTranscriptionStatus("Transcribing...");
+            setSilenceTimeLeft(10);
+          } else {
+            setTranscriptionStatus("Listening...");
+            if (userHasSpoken) {
+              setSilenceTimeLeft((prev) => {
+                if (prev <= 1) {
+                  clearInterval(timerRef.current);
+                  setInterviewState("PROCESSING");
+                  return 0;
+                }
+                return prev - 1;
+              });
+            } else {
+              setTimeLeft((prev) => {
+                if (prev <= 1) {
+                  clearInterval(timerRef.current);
+                  setInterviewState("PROCESSING");
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }
+          }
+        }, 1000);
+      }
+
+      else if (state === "PROCESSING") {
+        stopListening();
+        if (timerRef.current) clearInterval(timerRef.current);
+
+        setStatus("Submitting response for ML evaluation...");
+        setIsSubmitting(true);
+        setTranscriptionStatus("Processing...");
+
+        const spokenAnswer = answerTextRef.current.trim() || "No answer provided";
+        const timeTaken = questionTimeLeft - timeLeft;
+
+        try {
+          const payload = {
+            session_id: SessionManager.getSessionId(),
+            answer: spokenAnswer,
+            time_taken: timeTaken,
+            violations: violations,
+          };
+
+          const response = await interviewAPI.submitAnswer(payload);
+          const data = response.data;
+
+          setIsSubmitting(false);
+          if (data.is_completed) {
+            setInterviewState("COMPLETED");
+            setTranscriptionStatus("Submitted.");
+            setStatus("Compiling roadmap & evaluation...");
+            handleInterviewCompletion(data);
+          } else if (data.terminated) {
+            terminateInterview(data.message);
+          } else {
+            const nextQ = data.next_question;
+            setCurrentQuestion(nextQ.question_text);
+            setQuestionTimeLeft(nextQ.expected_duration || nextQ.estimated_time || 60);
+            setTimeLeft(nextQ.expected_duration || nextQ.estimated_time || 60);
+            setRoundName(nextQ.round_name || "Next Round");
+            setRoundNumber(nextQ.round_number || roundNumber + 1);
+            setCurrentDifficulty(nextQ.difficulty || "Medium");
+
+            setInterviewState("QUESTION");
+          }
+        } catch (err) {
+          console.error("Answer submission failed:", err);
+          setIsSubmitting(false);
+          setErrorDetails("Answer submission failed. Ensure the backend FastAPI server is running.");
+          setInterviewState("ERROR");
         }
-      }, 1000);
-    }
+      }
+    };
+
+    handleStateTrigger();
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [phase, questionSubPhase, currentQuestion, questionTimeLeft]);
+  }, [interviewState]);
 
-  // Robust Speech Synthesis
+  // Load the pre-generated first question
+  const loadFirstQuestion = () => {
+    const firstQ = firstQuestion || location.state?.first_question || JSON.parse(localStorage.getItem("interview_first_question"));
+    if (firstQ) {
+      setCurrentQuestion(firstQ.question_text);
+      setQuestionTimeLeft(firstQ.expected_duration || firstQ.estimated_time || 60);
+      setTimeLeft(firstQ.expected_duration || firstQ.estimated_time || 60);
+      setRoundName(firstQ.round_name || "Introduction");
+      setRoundNumber(firstQ.round_number || 1);
+      setCurrentDifficulty(firstQ.difficulty || "Medium");
+
+      setInterviewState("QUESTION");
+    } else {
+      setErrorDetails("Failed to load pre-generated first question.");
+      setInterviewState("ERROR");
+    }
+  };
+
+  // Robust voice synthesis
   const speakQuestion = (text, onComplete) => {
     speechSynthesis.cancel();
-    if (proctorStateRef.current !== "RUNNING") {
-      setIsAISpeaking(false);
-      return;
-    }
-    if (isIntroMuted && phaseRef.current === "INTRODUCTION") {
-      setIsAISpeaking(false);
-      if (onComplete) onComplete();
-      return;
-    }
-    
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "en-US";
-    utter.rate = 1.02;
-    utter.pitch = 1.0;
-    
-    utter.onstart = () => {
-      setIsAISpeaking(true);
-    };
-    
-    const safetyTimeout = setTimeout(() => {
-      console.warn("Safety fallback triggered for TTS.");
-      setIsAISpeaking(false);
-      if (onComplete) onComplete();
-    }, 15000);
+    setIsAISpeaking(false);
 
-    utter.onend = () => {
-      clearTimeout(safetyTimeout);
-      setIsAISpeaking(false);
+    if (isIntroMuted || !window.speechSynthesis) {
       if (onComplete) onComplete();
-    };
-    utter.onerror = () => {
-      clearTimeout(safetyTimeout);
-      setIsAISpeaking(false);
+      return;
+    }
+
+    try {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "en-US";
+      utter.rate = 1.02;
+      utter.pitch = 1.0;
+
+      let completed = false;
+      const triggerComplete = () => {
+        if (completed) return;
+        completed = true;
+        clearTimeout(safetyTimeout);
+        setIsAISpeaking(false);
+
+        const currState = interviewStateRef.current;
+        if (currState !== "INTRODUCTION" && currState !== "QUESTION") {
+          return;
+        }
+        if (onComplete) onComplete();
+      };
+
+      utter.onstart = () => {
+        setIsAISpeaking(true);
+      };
+
+      const safetyTimeout = setTimeout(() => {
+        console.warn("Safety fallback triggered for TTS.");
+        triggerComplete();
+      }, 10000); // 10s safety timeout
+
+      utter.onend = () => {
+        triggerComplete();
+      };
+
+      utter.onerror = (e) => {
+        console.warn("TTS SpeechSynthesisUtterance error:", e);
+        triggerComplete();
+      };
+
+      speechSynthesis.speak(utter);
+    } catch (err) {
+      console.warn("TTS SpeechSynthesis failed:", err);
       if (onComplete) onComplete();
-    };
-    speechSynthesis.speak(utter);
+    }
   };
 
-  // Robust Speech Recognition
+  // Robust voice recording
   const startListening = () => {
     if (!SpeechRecognition) {
       setStatus("Speech Recognition API unsupported in this browser.");
       return;
     }
-    if (proctorStateRef.current !== "RUNNING") return;
     stopListening();
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.interimResults = true;
-    recognition.continuous = true;
-    
-    recognition.onstart = () => {
-      setIsListening(true);
-      setStatus("Microphone listening... Speak now.");
-    };
-    
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript + " ";
-      }
-      setCurrentAnswer(transcript.trim());
-      lastSpeechTimeRef.current = Date.now();
-    };
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.interimResults = true;
+      recognition.continuous = true;
 
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-      if (event.error === "not-allowed") {
-        setStatus("Microphone access blocked.");
-      }
-    };
+      recognition.onstart = () => {
+        setIsListening(true);
+        setStatus("Microphone listening... Speak now.");
+      };
 
-    recognition.onend = () => {
-      setIsListening(false);
-      // Auto-restart recognition if unexpectedly dropped during active speaking phase
-      if (phaseRef.current === "QUESTION" && !submittingRef.current && proctorStateRef.current === "RUNNING") {
-        console.log("Auto-restarting speech engine...");
-        try {
-          recognition.start();
-        } catch {}
-      }
-    };
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript + " ";
+        }
+        setCurrentAnswer(transcript.trim());
+        lastSpeechTimeRef.current = Date.now();
+        setSilenceTimeLeft(10);
+        setHasSpoken(true);
+        setIsCandidateSpeaking(true);
+      };
 
-    recognitionRef.current = recognition;
-    recognition.start();
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        if (event.error === "not-allowed") {
+          setStatus("Microphone access blocked.");
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        if (interviewStateRef.current === "LISTENING" && !isPaused) {
+          try {
+            recognition.start();
+          } catch {}
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error("Failed to start SpeechRecognition:", err);
+    }
   };
 
   const stopListening = () => {
     try {
-      if (recognitionRef.current) recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.stop();
+      }
     } catch {}
+    recognitionRef.current = null;
     setIsListening(false);
   };
 
-  const submitAnswerAndAdvance = async () => {
-    stopListening();
-    if (timerRef.current) clearInterval(timerRef.current);
-    
-    setPhase("SUBMITTING");
-    setIsSubmitting(true);
-    setTranscriptionStatus("Processing...");
-    setStatus("Analyzing spoken speech answers...");
+  // Callback from CameraMonitor for frame updates
+  const handleProctorUpdate = (data) => {
+    if (data.camera_blocked) {
+      setCameraStatus("ERROR");
+      return;
+    }
+    setCameraStatus("GRANTED");
+    setFaceConfidence(data.face_confidence ?? 1.0);
+    setBrightness(data.brightness ?? 100.0);
 
-    const spokenAnswer = answerTextRef.current || "No answer provided";
-    const timeTaken = questionTimeLeft - timeLeft;
-    const requestStart = Date.now();
+    const activeStates = ["QUESTION", "LISTENING", "PROCESSING"];
+    if (!activeStates.includes(interviewStateRef.current)) return;
 
-    try {
-      const payload = {
-        session_id: sessionId,
-        answer: spokenAnswer,
-        time_taken: timeTaken,
-        violations: violations,
-      };
+    // Face missing verification with dampening (2 frames = ~1 second)
+    const isFaceDetected = data.face_detected && (data.face_confidence >= 0.5);
+    if (!isFaceDetected) {
+      consecutiveMissingFaceRef.current += 1;
+      if (consecutiveMissingFaceRef.current >= 2) {
+        setFaceMissing(true);
+      }
+    } else {
+      consecutiveMissingFaceRef.current = 0;
+      setFaceMissing(false);
+    }
 
-      const response = await interviewAPI.submitAnswer(payload);
-      const data = response.data;
-
-      // Enforce 2-second transition screen
-      const elapsed = Date.now() - requestStart;
-      const delay = Math.max(0, 2000 - elapsed);
-
-      setTimeout(() => {
-        if (data.is_completed) {
-          setPhase("COMPLETED");
-          setTranscriptionStatus("Submitted.");
-          setStatus("Evaluating response patterns & compiling career roadmap...");
-          
-          handleInterviewCompletion(data);
-        } else if (data.terminated) {
-          terminateInterview(data.message);
-        } else {
-          const nextQ = data.next_question;
-          setCurrentQuestion(nextQ.question_text);
-          setQuestionTimeLeft(nextQ.expected_duration || nextQ.estimated_time || 60);
-          setQuestionType(nextQ.question_type || "behavioral");
-          setCurrentDifficulty(nextQ.difficulty);
-          setRoundName(nextQ.round_name);
-          setRoundNumber(nextQ.round_number);
-          
-          setPhase("QUESTION");
-          setQuestionSubPhase("PREPARING");
-          setIsSubmitting(false);
-        }
-      }, delay);
-
-    } catch (err) {
-      console.error("Answer submission failed:", err);
-      setIsSubmitting(false);
-      setPhase("QUESTION");
-      setQuestionSubPhase("ANSWERING");
+    // Multiple faces verification with dampening (2 frames = ~1 second)
+    if (data.face_count > 1 || data.multiple_faces) {
+      consecutiveMultipleFacesRef.current += 1;
+      if (consecutiveMultipleFacesRef.current >= 2) {
+        setMultipleFaces(true);
+      }
+    } else {
+      consecutiveMultipleFacesRef.current = 0;
+      setMultipleFaces(false);
     }
   };
 
+  // Fullscreen and Tab listeners
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFs = !!document.fullscreenElement;
+      setIsFullscreenActive(isCurrentlyFs);
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        setTabStatus("Disconnected");
+      } else {
+        setTabStatus("Connected");
+      }
+    };
+
+    const handleWindowBlur = () => {
+      setTabStatus("Disconnected");
+    };
+
+    const handleWindowFocus = () => {
+      setTabStatus("Connected");
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, []);
+
+  // Unified Proctoring violation check loop
+  useEffect(() => {
+    const activeStates = ["QUESTION", "LISTENING", "PROCESSING"];
+    if (!activeStates.includes(interviewState)) {
+      if (isPaused) {
+        setIsPaused(false);
+        setActiveWarning("");
+      }
+      return;
+    }
+
+    let violationMessage = "";
+    if (!isFullscreenActive) {
+      violationMessage = "Fullscreen mode exited. Please enter fullscreen to resume.";
+    } else if (tabStatus === "Disconnected") {
+      violationMessage = "Please return to the interview window.";
+    } else if (faceMissing) {
+      violationMessage = "Face not detected. Please return to the camera.";
+    } else if (multipleFaces) {
+      violationMessage = "Multiple faces detected. Only the candidate should be visible.";
+    }
+
+    if (violationMessage) {
+      if (!isPaused) {
+        setIsPaused(true);
+        setActiveWarning(violationMessage);
+        setRecoveryCountdown(15);
+        speechSynthesis.cancel();
+        stopListening();
+        setViolations((prev) => [...prev, violationMessage]);
+        setWarningCount((prev) => {
+          const count = prev + 1;
+          if (count >= 5) {
+            terminateInterview("Repeated integrity violations.");
+          }
+          return count;
+        });
+        SessionManager.updateBackendState("PAUSED", `Proctor violation: ${violationMessage}`, "AIInterviewLive.jsx");
+      } else if (violationMessage !== activeWarning) {
+        setActiveWarning(violationMessage);
+      }
+    } else {
+      if (isPaused) {
+        setIsPaused(false);
+        setActiveWarning("");
+        SessionManager.updateBackendState("ACTIVE", "Proctoring compliance restored", "AIInterviewLive.jsx");
+        
+        if (interviewState === "LISTENING") {
+          startListening();
+        } else if (interviewState === "QUESTION") {
+          speakQuestion(currentQuestion, () => {
+            setInterviewState("LISTENING");
+          });
+        }
+      }
+    }
+  }, [isFullscreenActive, tabStatus, faceMissing, multipleFaces, interviewState]);
+
+  // Recovery timer loop
+  useEffect(() => {
+    if (!isPaused) {
+      if (recoveryTimerRef.current) clearInterval(recoveryTimerRef.current);
+      return;
+    }
+
+    recoveryTimerRef.current = setInterval(() => {
+      setRecoveryCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(recoveryTimerRef.current);
+          terminateInterview("Integrity validation timeout exceeded.");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (recoveryTimerRef.current) clearInterval(recoveryTimerRef.current);
+    };
+  }, [isPaused]);
+
+  // Terminate interview
+  const terminateInterview = (reason) => {
+    setInterviewState("COMPLETED");
+    speechSynthesis.cancel();
+    stopListening();
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (recoveryTimerRef.current) clearInterval(recoveryTimerRef.current);
+    document.exitFullscreen().catch(() => {});
+    SessionManager.clearSession(`Terminated: ${reason}`, "AIInterviewLive.jsx");
+
+    setStatus(`Interview Terminated: ${reason}`);
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 4000);
+  };
+
+  // Report completion
   const handleInterviewCompletion = async (answerData) => {
     try {
-      const reportRes = await interviewAPI.getReport(sessionId);
+      const activeSessionId = SessionManager.getSessionId();
+      const reportRes = await interviewAPI.getReport(activeSessionId);
       const reportResult = reportRes.data;
 
       const normalised = {
@@ -694,17 +722,16 @@ function AIInterviewLive() {
         communication: reportResult.scores_breakdown?.communication ?? 0,
         weaknesses: reportResult.weaknesses ?? [],
         full_results: reportResult.scores_breakdown ?? {},
-        session_id: sessionId,
+        session_id: activeSessionId,
       };
 
       setInterviewData(normalised);
       localStorage.setItem("interview_data", JSON.stringify(normalised));
-      localStorage.setItem("interview_session_id", sessionId);
-
+      
       setTimeout(() => {
         document.exitFullscreen().catch(() => {});
         navigate("/interview-result", {
-          state: { result: normalised, session_id: sessionId, violations },
+          state: { result: normalised, session_id: activeSessionId, violations },
         });
       }, 1500);
     } catch (err) {
@@ -713,57 +740,26 @@ function AIInterviewLive() {
     }
   };
 
-  const terminateInterview = (reason) => {
-    setPhase("TERMINATED");
-    speechSynthesis.cancel();
-    stopListening();
-    if (timerRef.current) clearInterval(timerRef.current);
-    document.exitFullscreen().catch(() => {});
-    alert(`Interview Terminated: ${reason}`);
-    navigate("/dashboard");
-  };
-
-  const handleEarlyTermination = async () => {
-    setPhase("TERMINATED");
-    speechSynthesis.cancel();
-    stopListening();
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    try {
-      const timeTaken = questionTimeLeft - timeLeft;
-      await interviewAPI.submitAnswer({
-        session_id: sessionId,
-        answer: answerTextRef.current || "Assessment aborted early due to escape or fullscreen exit.",
-        time_taken: timeTaken,
-        violations: [...violations, "Fullscreen exit"],
-      });
-    } catch (e) {
-      console.warn("Failed saving final answer state on escape:", e);
-    }
-
-    try {
-      await interviewAPI.getReport(sessionId);
-    } catch (e) {
-      console.warn("Failed compiling partial report on exit:", e);
-    }
-
-    document.exitFullscreen().catch(() => {});
-    navigate("/dashboard");
-  };
-
-  const handleViolation = (reason) => {
-    if (isSubmitting || phase === "COMPLETED" || phase === "TERMINATED" || phase === "INITIALIZING" || phase === "INTRODUCTION") return;
-    setViolations((prev) => [...prev, reason]);
-    setActiveWarning(reason);
-    
-    setWarningCount((prev) => {
-      const n = prev + 1;
-      if (n >= 5) {
-        terminateInterview(`Repeated integrity violations: ${reason}`);
+  // Helpers
+  const handleToggleMute = () => {
+    setIsIntroMuted((prev) => {
+      const next = !prev;
+      if (next) {
+        speechSynthesis.cancel();
+        setIsAISpeaking(false);
       }
-      return n;
+      return next;
     });
-    setTimeout(() => setActiveWarning(""), 5000);
+  };
+
+  const handleReplayIntro = () => {
+    speechSynthesis.cancel();
+    setIsAISpeaking(false);
+    speakQuestion(currentQuestion, () => {
+      if (interviewState === "QUESTION") {
+        setInterviewState("LISTENING");
+      }
+    });
   };
 
   const handleManualEnterFullscreen = async () => {
@@ -774,344 +770,100 @@ function AIInterviewLive() {
         setNeedsFullscreenActivation(false);
       }
     } catch (err) {
-      alert("Failed entering fullscreen. Please verify browser permissions.");
+      alert("Failed entering fullscreen. Verify browser permissions.");
     }
   };
 
-  const [recoveryCountdown, setRecoveryCountdown] = useState(10);
-  const [lookAway, setLookAway] = useState(false);
-  const [integrityLogs, setIntegrityLogs] = useState([]);
-  const [faceStatus, setFaceStatus] = useState("Checking");
-  const [faceCentered, setFaceCentered] = useState("Checking");
-  const [lightingStatus, setLightingStatus] = useState("Checking");
-  const [fullscreenStatus, setFullscreenStatus] = useState("Checking");
-  const [tabStatus, setTabStatus] = useState("Checking");
-
-  const logIntegrityEvent = (event, severity) => {
-    const newLog = {
-      timestamp: new Date().toLocaleTimeString(),
-      event: event,
-      severity: severity
-    };
-    setIntegrityLogs((prev) => [...prev, newLog]);
-    setViolations((prev) => [...prev, `${event} (${severity})`]);
+  const handleViolation = (reason) => {
+    // Left empty since unified proctoring state hooks handle checks directly
   };
 
-  const handleProctorUpdate = (data) => {
-    if (data.camera_blocked) {
-      setCameraStatus("ERROR");
-      return;
-    }
+  // Rendering Helper
+  const renderWorkflowContent = () => {
+    switch (interviewState) {
+      case "IDLE":
+        return (
+          <div className="guided-centered-card-wrapper">
+            <GlassCard className="guided-card welcome-card" style={{ textAlign: "center" }}>
+              <div className="welcome-header">
+                <Sparkles size={44} className="welcome-sparkles pulsing" style={{ margin: "0 auto" }} />
+                <h1 style={{ marginTop: "12px" }}>NeuroPath AI Stateful Interview</h1>
+              </div>
+              
+              <div className="candidate-info-badge" style={{ display: "flex", flexDirection: "column", gap: "6px", alignItems: "center" }}>
+                <p style={{ margin: 0 }}>Candidate: <strong>{candidateName}</strong></p>
+                <p style={{ margin: 0 }}>Target Role: <strong>{role} ({level} Level)</strong></p>
+              </div>
 
-    setCameraStatus("GRANTED");
-    
-    // Extract raw metrics from modern CNN-based face detector (Phase 3)
-    setFaceConfidence(data.face_confidence ?? 0.0);
-    setTrackingConfidence(data.tracking_confidence ?? 0.0);
-    setLandmarkConfidence(data.landmark_confidence ?? 0.0);
-    setYaw(data.yaw ?? 0.0);
-    setPitch(data.pitch ?? 0.0);
-    setRoll(data.roll ?? 0.0);
-    setBrightness(data.brightness ?? 0.0);
-    setLastDetectionTime(new Date().toLocaleTimeString());
+              <div className="guided-divider" />
 
-    // Update compliance statuses based on thresholds (Phase 5)
-    const isDetectionValid = data.face_detected && (data.face_confidence >= proctorConfig.detection_threshold);
+              <p style={{ lineHeight: "1.6", color: "var(--text-secondary)" }}>
+                You are about to start your mock evaluation session. Camera and microphone permissions will be verified, and secure fullscreen mode will be activated.
+              </p>
 
-    if (!isDetectionValid) {
-      setFaceStatus("Disconnected");
-    } else if (data.multiple_faces) {
-      setFaceStatus("Violation");
-    } else {
-      setFaceStatus("Connected");
-    }
+              <div className="guided-divider" />
 
-    setFaceCentered(data.face_centered ? "Connected" : "Disconnected");
-    setLightingStatus(data.good_lighting ? "Connected" : "Disconnected");
-    setLookAway(data.look_away);
-  };
+              <GlassButton primary onClick={startInterviewSequence} style={{ width: "100%", justifyContent: "center", padding: "14px 0", fontSize: "1.1rem" }}>
+                Start Interview Session <ArrowRight size={18} style={{ marginLeft: "8px" }} />
+              </GlassButton>
+            </GlassCard>
+          </div>
+        );
 
-  // Sync fullscreen state status indicator
-  useEffect(() => {
-    setFullscreenStatus(isFullscreenActive ? "Connected" : "Disconnected");
-  }, [isFullscreenActive]);
+      case "STARTING":
+        return (
+          <div className="guided-centered-card-wrapper">
+            <GlassCard className="guided-card welcome-card" style={{ textAlign: "center", padding: "40px" }}>
+              <div className="spinner-small" style={{ width: "40px", height: "40px", borderWidth: "4px", borderTopColor: "#3b82f6", margin: "0 auto 24px auto" }} />
+              <h2>Initializing Systems...</h2>
+              <p style={{ color: "var(--text-secondary)" }}>{status}</p>
+            </GlassCard>
+          </div>
+        );
 
-  // Sync window focus state status indicator
-  useEffect(() => {
-    const handleFocus = () => setTabStatus("Connected");
-    const handleBlur = () => {
-      setTabStatus("Disconnected");
-      if (phaseRef.current !== "INITIALIZING" && phaseRef.current !== "COMPLETED" && phaseRef.current !== "TERMINATED") {
-        handleViolation("Tab switched / focus lost");
-      }
-    };
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("blur", handleBlur);
-    };
-  }, []);
+      case "ERROR":
+        return (
+          <div className="guided-centered-card-wrapper">
+            <GlassCard className="guided-card error-card" style={{ border: "2px solid rgba(239, 68, 68, 0.4)", maxWidth: "560px", width: "100%", textAlign: "center" }}>
+              <ShieldAlert size={64} style={{ color: "#ef4444", margin: "0 auto 20px auto" }} className="pulsing" />
+              <h2>Unable to start the interview</h2>
+              <p style={{ color: "var(--text-secondary)", margin: "12px 0 24px 0" }}>{errorDetails}</p>
+              
+              <div style={{ display: "flex", gap: "12px", width: "100%" }}>
+                <GlassButton primary onClick={startInterviewSequence} style={{ flex: 1, justifyContent: "center" }}>
+                  Try Again
+                </GlassButton>
+                <GlassButton onClick={() => navigate("/interview")} style={{ flex: 1, justifyContent: "center" }}>
+                  Exit Interview
+                </GlassButton>
+              </div>
+            </GlassCard>
+          </div>
+        );
 
-  // Check microphone permission on mount (Phase 1 & 2 Setup)
-  useEffect(() => {
-    const initMicCheck = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        setMicStatus("GRANTED");
-        stream.getTracks().forEach((track) => track.stop());
-      } catch (err) {
-        console.warn("Microphone access denied on mount:", err);
-        setMicStatus("ERROR");
-      }
-    };
-    initMicCheck();
-  }, []);
+      case "COMPLETED":
+        return (
+          <div className="guided-centered-card-wrapper">
+            <GlassCard className="guided-card welcome-card" style={{ textAlign: "center", padding: "40px" }}>
+              <div className="spinner-small" style={{ width: "40px", height: "40px", borderWidth: "4px", borderTopColor: "#10b981", margin: "0 auto 24px auto" }} />
+              <h2>Compiling Interview Report...</h2>
+              <p style={{ color: "var(--text-secondary)" }}>Analyzing performance metrics and constructing career roadmap.</p>
+            </GlassCard>
+          </div>
+        );
 
-  // Compliance Flags
-  const isCameraHealthy = cameraStatus === "GRANTED";
-  const isMicHealthy = micStatus === "GRANTED";
-  const isFaceDetected = faceStatus === "Connected" && faceConfidence >= proctorConfig.detection_threshold;
-  const isCentered = faceCentered === "Connected";
-  const isLightingOk = lightingStatus === "Connected";
-  const isFsActive = isFullscreenActive;
-  const isTabActive = tabStatus === "Connected";
-  const isGazeOk = !lookAway;
-
-  const checkCurrentCompliance = () => {
-    return isCameraHealthy && isMicHealthy && isFaceDetected && isCentered && isLightingOk && isFsActive && isTabActive && isGazeOk;
-  };
-
-  const getBlockerReason = () => {
-    if (!isFsActive) return "Fullscreen Mode is disabled. Please lock fullscreen.";
-    if (tabStatus === "Disconnected") return "Browser focus lost (tab switched / window blurred).";
-    if (cameraStatus === "ERROR") return "Webcam access denied or disconnected.";
-    if (micStatus === "ERROR") return "Microphone access denied or disconnected.";
-    if (faceStatus === "Disconnected") return "No face detected in camera frame.";
-    if (faceStatus === "Violation") return "Multiple faces detected in frame.";
-    if (!isCentered) return "Face is off-center. Please align face to guides.";
-    if (!isLightingOk) return "Suboptimal lighting. Adjust room brightness.";
-    if (lookAway && faceStatus === "Connected") return "Gaze lookup warning: Focus eyes on the screen.";
-    return "";
-  };
-
-  // State Machine 100ms Ticker Loop (Phase 4, 5, 8 Source of Truth)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const isCompliant = checkCurrentCompliance();
-      const blocker = getBlockerReason();
-      setActiveBlockerReason(blocker || "None");
-
-      // Dynamic integrity score calculation
-      setIntegrityScore(() => {
-        let score = 100 - (violations.length * 5) - (warningCount * 8);
-        if (proctorState === "PAUSED") score -= 15;
-        return Math.max(0, Math.min(100, score));
-      });
-
-      setProctorState((currState) => {
-        let nextState = currState;
-
-        if (currState === "INITIALIZING") {
-          nextState = "CHECKING_PERMISSIONS";
-          logProctorState(currState, nextState);
-        } else if (currState === "CHECKING_PERMISSIONS") {
-          if (cameraStatus !== "CHECKING" && micStatus !== "CHECKING") {
-            if (isCameraHealthy && isMicHealthy) {
-              nextState = "CHECKING_CAMERA";
-              logProctorState(currState, nextState);
-            }
-          }
-        } else if (currState === "CHECKING_CAMERA") {
-          if (cameraStatus === "GRANTED") {
-            nextState = "CHECKING_MICROPHONE";
-            logProctorState(currState, nextState);
-          }
-        } else if (currState === "CHECKING_MICROPHONE") {
-          if (micStatus === "GRANTED") {
-            nextState = "CHECKING_FACE";
-            logProctorState(currState, nextState);
-          }
-        } else if (currState === "CHECKING_FACE") {
-          if (isFaceDetected) {
-            nextState = "CALIBRATING";
-            setCalibrationTime(0.0);
-            logProctorState(currState, nextState);
-          }
-        } else if (currState === "CALIBRATING") {
-          if (isCompliant) {
-            setCalibrationTime((prev) => {
-              const nextTime = prev + 0.1;
-              if (nextTime >= 3.0) {
-                nextState = "READY";
-                logProctorState(currState, "READY");
-                return 3.0;
-              }
-              return nextTime;
-            });
-          } else {
-            setCalibrationTime(0.0);
-            if (!isFaceDetected) {
-              nextState = "CHECKING_FACE";
-              logProctorState(currState, nextState, blocker);
-            }
-          }
-        } else if (currState === "READY") {
-          if (!isCompliant) {
-            nextState = "CHECKING_FACE";
-            logProctorState(currState, nextState, blocker);
-          }
-        } else if (currState === "RUNNING") {
-          if (!isCompliant) {
-            const isSevere = !isFsActive || !isTabActive;
-            if (isSevere) {
-              nextState = "PAUSED";
-              setPhase("PAUSED");
-              setRecoveryCountdown(proctorConfig.pause_timeout_s);
-              setViolationStart(Date.now());
-              speechSynthesis.cancel();
-              stopListening();
-              logProctorState(currState, nextState, blocker);
-              logIntegrityEvent(blocker, "HIGH");
-            } else {
-              nextState = "WARNING";
-              setViolationStart(Date.now());
-              setActiveWarning(blocker);
-              logProctorState(currState, nextState, blocker);
-              logIntegrityEvent(blocker, "MEDIUM");
-            }
-          }
-        } else if (currState === "WARNING") {
-          if (isCompliant) {
-            nextState = "RUNNING";
-            setActiveWarning("");
-            setViolationStart(null);
-            logProctorState(currState, nextState, "Compliance Restored");
-          } else {
-            const elapsed = (Date.now() - violationStart) / 1000;
-            if (elapsed >= proctorConfig.warning_timeout_s) {
-              nextState = "PAUSED";
-              setPhase("PAUSED");
-              setRecoveryCountdown(proctorConfig.pause_timeout_s);
-              speechSynthesis.cancel();
-              stopListening();
-              logProctorState(currState, nextState, blocker);
-              logIntegrityEvent(blocker, "HIGH");
-            }
-          }
-        } else if (currState === "PAUSED") {
-          if (isCompliant) {
-            nextState = "RECOVERING";
-            setRecoveryStart(Date.now());
-            logProctorState(currState, nextState, "Candidate compliant again");
-          }
-        } else if (currState === "RECOVERING") {
-          if (!isCompliant) {
-            nextState = "PAUSED";
-            setRecoveryStart(null);
-            logProctorState(currState, nextState, blocker);
-          } else {
-            const elapsed = (Date.now() - recoveryStart) / 1000;
-            if (elapsed >= 1.5) {
-              nextState = "RUNNING";
-              setPhase(localStorage.getItem(`intro_completed_${sessionId}`) === "true" ? "QUESTION" : "INTRODUCTION");
-              setActiveWarning("");
-              setViolationStart(null);
-              setRecoveryStart(null);
-              setQuestionSubPhase("ANSWERING");
-              logProctorState(currState, nextState, "Compliance stabilization verified");
-            }
-          }
-        }
-
-        return nextState;
-      });
-    }, 100);
-
-    return () => clearInterval(timer);
-  }, [
-    isCameraHealthy, isMicHealthy, isFaceDetected, isCentered, isLightingOk,
-    isFsActive, isTabActive, isGazeOk, proctorState, violationStart, recoveryStart, proctorConfig, violations, warningCount
-  ]);
-
-  const handleStartInterview = () => {
-    setProctorState("RUNNING");
-    logProctorState("READY", "RUNNING", "Candidate started interview");
-    
-    const introPlayed = localStorage.getItem(`intro_completed_${sessionId}`) === "true";
-    if (introPlayed) {
-      setPhase("QUESTION");
-      setQuestionSubPhase("PREPARING");
-    } else {
-      setPhase("INTRODUCTION");
-      setCurrentSentenceIndex(0);
-      setTypedSentence("");
+      default:
+        return null;
     }
   };
 
-  // Elapsed-time paused countdown decrement loop
-  useEffect(() => {
-    if (proctorState !== "PAUSED") return;
-
-    const interval = setInterval(() => {
-      setRecoveryCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setProctorState("TERMINATED");
-          terminateInterview("Integrity validation timeout exceeded.");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [proctorState]);
-
-  // Phase 6 Welcomer Controls
-  const handleToggleMute = () => {
-    setIsIntroMuted((prev) => !prev);
-    setIsAISpeaking(false);
-    speechSynthesis.cancel();
-  };
-
-  const handleReplayIntro = () => {
-    if (introTimerRef.current) clearTimeout(introTimerRef.current);
-    speechSynthesis.cancel();
-    setIsAISpeaking(false);
-    setIsIntroFinished(false);
-    setCurrentSentenceIndex(0);
-    setTypedSentence("");
-  };
-
-  const handleSkipIntro = () => {
-    if (introTimerRef.current) clearTimeout(introTimerRef.current);
-    speechSynthesis.cancel();
-    setIsAISpeaking(false);
-    localStorage.setItem(introPlayedKey, "true");
-    // Skip immediately to Question 1
-    setPhase("QUESTION");
-    setQuestionSubPhase("PREPARING");
-  };
-
-  const handleContinueFromIntro = () => {
-    localStorage.setItem(introPlayedKey, "true");
-    setIsAISpeaking(false);
-    speechSynthesis.cancel();
-    setPhase("READY");
-  };
-
-  // Dynamic Dashboard status variables mapped live from proctoring
-  const faceTracked = !activeWarning.toLowerCase().includes("no face") && !activeWarning.toLowerCase().includes("too far");
-  const singleCandidate = !activeWarning.toLowerCase().includes("multiple persons");
-  const gazeCalibrated = !activeWarning.toLowerCase().includes("looking away");
-  const tabSecure = !activeWarning.toLowerCase().includes("focus lost") && !activeWarning.toLowerCase().includes("tab switched") && !activeWarning.toLowerCase().includes("window switch");
+  const isLive = ["INTRODUCTION", "QUESTION", "LISTENING", "PROCESSING"].includes(interviewState);
 
   return (
     <div className="live-interview-container">
-      {/* ⚠️ Integrity Pause Recovery Overlay */}
+      {/* Secure Blocker Pause Overlay */}
       <AnimatePresence>
-        {phase === "PAUSED" && (
+        {isPaused && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1123,18 +875,22 @@ function AIInterviewLive() {
               <AlertTriangle size={64} className="text-danger pulsing" style={{ color: "#ef4444", margin: "0 auto 20px auto" }} />
               <h2 style={{ color: "#ef4444", fontSize: "1.8rem", fontWeight: "800" }}>Interview Paused</h2>
               <p style={{ color: "var(--text-secondary)", margin: "16px 0", fontSize: "1.05rem", lineHeight: "1.6" }}>
-                An integrity compliance issue has been detected. Please resolve the following warning immediately:
+                An integrity compliance issue has been detected. Please resolve the warning immediately:
               </p>
               
               <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "12px", padding: "16px", margin: "20px 0", textAlign: "center", color: "#f87171", fontWeight: "700" }}>
-                {!isFullscreenActive ? "❌ Exited Fullscreen Mode" : 
-                 (faceStatus === "Disconnected" ? "❌ Face Not Detected / Partially Visible" :
-                 (faceStatus === "Violation" ? "❌ Multiple Faces Detected in Frame" : 
-                 (tabStatus === "Disconnected" ? "❌ Switched Tabs / Lost Window Focus" : 
-                 (cameraStatus === "ERROR" ? "❌ Camera Stream Disconnected" : "❌ Microphone Disconnected"))))}
+                {activeWarning}
               </div>
 
-              <div style={{ margin: "28px 0 16px 0" }}>
+              {!isFullscreenActive && (
+                <div style={{ marginBottom: "20px" }}>
+                  <GlassButton primary onClick={handleManualEnterFullscreen} style={{ margin: "0 auto" }}>
+                    Re-enter Fullscreen
+                  </GlassButton>
+                </div>
+              )}
+
+              <div style={{ margin: "16px 0" }}>
                 <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "700" }}>
                   Time Remaining to Comply
                 </p>
@@ -1144,40 +900,21 @@ function AIInterviewLive() {
               </div>
 
               <p className="text-small" style={{ color: "var(--text-muted)" }}>
-                The interview will be automatically terminated and graded as incomplete if compliance is not restored.
+                The interview will be automatically terminated and marked incomplete if compliance is not restored.
               </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ⚠️ Fullscreen Exit warning Overlay */}
+      {/* Manual Fullscreen prompt overlay (If auto-request fails) */}
       <AnimatePresence>
-        {exitedFullscreenWarning && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fullscreen-prompt-overlay"
-          >
-            <div className="fullscreen-prompt-card" style={{ border: "2px solid #ef4444" }}>
-              <ShieldAlert size={48} className="text-danger" style={{ color: "#ef4444", margin: "0 auto 16px auto" }} />
-              <h2 style={{ color: "#991b1b" }}>Fullscreen Escape Detected</h2>
-              <p className="text-small" style={{ color: "var(--text-secondary)", margin: "12px 0 0 0" }}>
-                Terminating assessment session and committing all completed progress...
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Fullscreen Initializer Overlay (if auto blocked) */}
-      <AnimatePresence>
-        {needsFullscreenActivation && phase === "INITIALIZING" && (
+        {needsFullscreenActivation && isLive && !isPaused && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="fullscreen-prompt-overlay"
+            style={{ zIndex: 99990 }}
           >
             <div className="fullscreen-prompt-card">
               <Shield size={48} style={{ color: "var(--color-navy)", margin: "0 auto 16px auto" }} />
@@ -1193,556 +930,243 @@ function AIInterviewLive() {
         )}
       </AnimatePresence>
 
-      {/* Main proctored Split Screen */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="page-container live-interview-page"
-      >
-        {/* LEFT PANEL */}
-        <div className="live-left">
-          
-          {/* Horizontal Progress bar */}
-          <div className="progress-bar-wrapper">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem", fontWeight: "600", color: "var(--text-secondary)" }}>
-              <span>Question {roundNumber} of {blueprint.length}</span>
-              <span>Estimated Time: {(blueprint.length - roundNumber + 1) * 2} min left</span>
+      {/* Flow views */}
+      {!isLive ? (
+        <div className="guided-workflow-container">
+          {renderWorkflowContent()}
+        </div>
+      ) : (
+        /* Workspace body when interview is active */
+        <motion.div
+          key="live_interview"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="live-interview-workspace"
+          style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
+        >
+          {/* HEADER */}
+          <header className="workspace-header">
+            <div className="header-left">
+              <span className="workspace-badge round-badge">Round {roundNumber}: {roundName}</span>
+              <span className="workspace-badge role-badge">{role} ({level})</span>
+              <span className="workspace-badge difficulty-badge">{currentDifficulty}</span>
             </div>
-            <div className="progress-bar-container">
-              <div className="progress-bar-fill" style={{ width: `${(roundNumber / blueprint.length) * 100}%` }} />
+            <div className="header-center">
+              <div className="header-progress-container">
+                <span className="header-progress-label">Progress: Question {roundNumber} of {blueprint.length || 5}</span>
+                <div className="header-progress-bar">
+                  <div className="header-progress-fill" style={{ width: `${(roundNumber / (blueprint.length || 5)) * 100}%` }} />
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <GlassBadge status="secondary">{level} Level</GlassBadge>
-            <GlassBadge status="secondary">{role}</GlassBadge>
-            <GlassBadge status="success">{questionType.replace("_", " ")}</GlassBadge>
-          </div>
-
-          {activeWarning && (
-            <div className="warning-banner pulse" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid #ef4444", borderRadius: "12px", padding: "12px 16px", color: "#991b1b", fontSize: "0.85rem", display: "flex", alignItems: "center" }}>
-              <AlertTriangle size={14} style={{ marginRight: "6px" }} />
-              PROCTOR WARNING ({warningCount}/5): {activeWarning}
+            <div className="header-right">
+              <div className={`workspace-timer ${timeLeft <= 10 ? "warning" : ""}`}>
+                <Clock size={16} />
+                <span>{timeLeft}s remaining</span>
+              </div>
             </div>
-          )}
+          </header>
 
-          {/* Dynamic Conversational UI States */}
-          <AnimatePresence mode="wait">
-            {phase === "INITIALIZING" && (
-              <motion.div
-                key="initializing"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.3 }}
-              >
-                <GlassCard style={{ padding: "40px", textAlign: "center" }}>
-                  <Shield size={48} className="pulsing" style={{ color: "var(--color-navy)", margin: "0 auto 16px auto" }} />
-                  <h2 style={{ color: "var(--color-dark-blue)" }}>Initialize Secure Interview Setup</h2>
-                  <p className="text-small" style={{ color: "var(--text-secondary)" }}>
-                    Please grant the necessary hardware permissions and lock secure fullscreen to begin the proctored session.
-                  </p>
-                  
-                  <div className="setup-checklist" style={{ textAlign: "left", margin: "24px auto", maxWidth: "340px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.4)", borderRadius: "8px", border: "1px solid var(--glass-border)", fontSize: "0.9rem" }}>
-                      <span>📷 Camera Access</span>
-                      <span style={{ fontWeight: "600", color: cameraStatus === "GRANTED" ? "#10b981" : (cameraStatus === "ERROR" ? "#ef4444" : "var(--text-muted)") }}>
-                        {cameraStatus === "GRANTED" ? "✓ Connected" : (cameraStatus === "ERROR" ? "✗ Blocked" : "Checking...")}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.4)", borderRadius: "8px", border: "1px solid var(--glass-border)", fontSize: "0.9rem" }}>
-                      <span>🎤 Microphone Access</span>
-                      <span style={{ fontWeight: "600", color: micStatus === "GRANTED" ? "#10b981" : (micStatus === "ERROR" ? "#ef4444" : "var(--text-muted)") }}>
-                        {micStatus === "GRANTED" ? "✓ Connected" : (micStatus === "ERROR" ? "✗ Blocked" : "Checking...")}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.4)", borderRadius: "8px", border: "1px solid var(--glass-border)", fontSize: "0.9rem" }}>
-                      <span>👤 Face Detected</span>
-                      <span style={{ fontWeight: "600", color: faceStatus === "Connected" ? "#10b981" : (faceStatus === "Checking" ? "var(--text-muted)" : "#ef4444") }}>
-                        {faceStatus === "Connected" ? "✓ Verified" : (faceStatus === "Checking" ? "Checking..." : "✗ Missing")}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.4)", borderRadius: "8px", border: "1px solid var(--glass-border)", fontSize: "0.9rem" }}>
-                      <span>🎯 Face Centering</span>
-                      <span style={{ fontWeight: "600", color: faceCentered === "Connected" ? "#10b981" : (faceCentered === "Checking" ? "var(--text-muted)" : "#ef4444") }}>
-                        {faceCentered === "Connected" ? "✓ Centered" : (faceCentered === "Checking" ? "Checking..." : "✗ Align Face")}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.4)", borderRadius: "8px", border: "1px solid var(--glass-border)", fontSize: "0.9rem" }}>
-                      <span>💡 Optimal Lighting</span>
-                      <span style={{ fontWeight: "600", color: lightingStatus === "Connected" ? "#10b981" : (lightingStatus === "Checking" ? "var(--text-muted)" : "#ef4444") }}>
-                        {lightingStatus === "Connected" ? "✓ Good" : (lightingStatus === "Checking" ? "Checking..." : "✗ Low Light")}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.4)", borderRadius: "8px", border: "1px solid var(--glass-border)", fontSize: "0.9rem" }}>
-                      <span>🖥 Secure Fullscreen</span>
-                      <span style={{ fontWeight: "600", color: isFullscreenActive ? "#10b981" : "var(--text-muted)" }}>
-                        {isFullscreenActive ? "✓ Active" : "Pending"}
-                      </span>
-                    </div>
+          {/* WORKSPACE BODY */}
+          <div className="workspace-body" style={{ flex: 1, display: "grid", gridTemplateColumns: "1.3fr 0.7fr", gap: "24px", padding: "24px", boxSizing: "border-box", overflow: "hidden" }}>
+            
+            {/* Left Panel */}
+            <div className="workspace-left-panel" style={{ display: "flex", flexDirection: "column", gap: "16px", height: "100%", overflowY: "auto" }}>
+              
+              {/* Question Card */}
+              <GlassCard className="workspace-card question-card">
+                <div className="question-header">
+                  <HelpCircle size={16} className="text-secondary" />
+                  <span>Current Question</span>
+                </div>
+                <h1 className="question-text">{currentQuestion}</h1>
+              </GlassCard>
+
+              {/* AI Voice Assistant */}
+              <GlassCard className="workspace-card ai-voice-card">
+                <div className="ai-voice-row" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  <div className={`avatar-circle-small ${isAISpeaking ? "speaking" : "breathing"}`}>
+                    <EIAvatar isSpeaking={isAISpeaking} />
                   </div>
-
-                  {!isFullscreenActive ? (
-                    <GlassButton primary onClick={handleManualEnterFullscreen} style={{ width: "100%", justifyContent: "center" }}>
-                      Lock Fullscreen Mode
-                    </GlassButton>
-                  ) : proctorState === "READY" ? (
-                    <GlassButton primary onClick={handleStartInterview} style={{ width: "100%", justifyContent: "center" }}>
-                      Start Interview 🚀
-                    </GlassButton>
-                  ) : (
-                    <GlassButton primary disabled style={{ width: "100%", justifyContent: "center", opacity: 0.6 }}>
-                      {proctorState === "CALIBRATING"
-                        ? `Calibrating Face (${Math.round(calibrationTime * 10) / 10}s / 3.0s)...`
-                        : (proctorState === "CHECKING_PERMISSIONS" || proctorState === "INITIALIZING"
-                           ? "Initializing permissions..."
-                           : "Awaiting Compliance Setup...")}
-                    </GlassButton>
-                  )}
-                </GlassCard>
-              </motion.div>
-            )}
-
-            {phase === "INTRODUCTION" && (
-              <motion.div
-                key="introduction"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.4 }}
-              >
-                <GlassCard style={{ padding: "32px", textAlign: "center" }}>
-                  <div className="ai-avatar-container">
-                    <div className={`ai-avatar-circle ${isAISpeaking ? "speaking" : "breathing"}`}>
-                      <div className="ai-avatar-glow" />
-                      <EIAvatar isSpeaking={isAISpeaking} />
-                    </div>
-                    {/* Phase 5 Animated waveform while speaking */}
-                    {!isIntroMuted && !isIntroFinished ? (
-                      <div className={`voice-wave ${isAISpeaking ? "speaking" : "silent"}`}>
-                        <div className="voice-bar" />
-                        <div className="voice-bar" />
-                        <div className="voice-bar" />
-                        <div className="voice-bar" />
-                        <div className="voice-bar" />
+                  
+                  <div className="ai-voice-info" style={{ flex: 1 }}>
+                    <span className="ai-voice-title" style={{ fontWeight: 600 }}>AI Interview Assistant</span>
+                    {!isIntroMuted && isAISpeaking ? (
+                      <div className="workspace-voice-wave speaking">
+                        <div className="voice-bar" /><div className="voice-bar" /><div className="voice-bar" /><div className="voice-bar" /><div className="voice-bar" />
                       </div>
                     ) : (
-                      <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--text-muted)", height: "36px", display: "flex", alignItems: "center" }}>
-                        {isIntroMuted ? "Voice Muted" : "Introduction Finished"}
+                      <div className="workspace-voice-wave silent">
+                        <div className="voice-bar" /><div className="voice-bar" /><div className="voice-bar" /><div className="voice-bar" /><div className="voice-bar" />
                       </div>
                     )}
                   </div>
-                  <h2 style={{ color: "var(--color-dark-blue)", fontSize: "1.3rem", marginTop: "8px" }}>AI Interview Assistant</h2>
-                  
-                  {/* Subtitles container (Phase 4 Sentence scroll & highlighting) */}
-                  <div className="intro-subtitles-container" ref={subtitleContainerRef}>
-                    {INTRO_SENTENCES.map((sentence, idx) => {
-                      let sentenceClass = "intro-subtitle-sentence";
-                      if (idx === currentSentenceIndex) {
-                        sentenceClass += " active";
-                      } else if (idx < currentSentenceIndex) {
-                        sentenceClass += " completed";
-                      }
-                      
-                      return (
-                        <div key={idx} className={sentenceClass}>
-                          {idx === currentSentenceIndex ? (
-                            <>
-                              {typedWords.map((word, wIdx) => (
-                                <motion.span 
-                                  key={wIdx}
-                                  initial={{ opacity: 0, y: 2 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.15 }}
-                                  style={{ marginRight: "6px", display: "inline-block" }}
-                                >
-                                  {word}
-                                </motion.span>
-                              ))}
-                              {typedWords.length < sentence.split(" ").length && <span className="intro-cursor" />}
-                            </>
-                          ) : (
-                            sentence
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
 
-                  {/* Intro Controls (Phase 6) */}
-                  <div className="intro-controls">
-                    <GlassButton onClick={handleToggleMute} style={{ minWidth: "120px" }}>
-                      {isIntroMuted ? "🔈 Unmute Voice" : "🔇 Mute Voice"}
+                  <div className="voice-actions" style={{ display: "flex", gap: "8px" }}>
+                    <GlassButton small onClick={handleToggleMute}>
+                      {isIntroMuted ? "🔈 Unmute" : "🔇 Mute"}
                     </GlassButton>
-                    <GlassButton onClick={handleReplayIntro}>
-                      🔄 Replay
-                    </GlassButton>
-                    <GlassButton onClick={handleSkipIntro}>
-                      Skip Welcomer ⏭
-                    </GlassButton>
-                    <GlassButton 
-                      primary 
-                      disabled={!isIntroFinished} 
-                      onClick={handleContinueFromIntro}
-                      style={{ minWidth: "130px" }}
-                    >
-                      Continue <CheckCircle size={16} />
+                    <GlassButton small onClick={handleReplayIntro}>
+                      🔄 Replay Question
                     </GlassButton>
                   </div>
-                </GlassCard>
-              </motion.div>
-            )}
-
-            {phase === "READY" && (
-              <motion.div
-                key="ready"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.3 }}
-              >
-                <GlassCard style={{ padding: "40px", textAlign: "center" }}>
-                  <BrainCircuit size={48} className="pulsing" style={{ color: "var(--color-navy)", margin: "0 auto 16px auto" }} />
-                  <h2 style={{ color: "var(--color-dark-blue)" }}>Preparing your personalized interview...</h2>
-                  <p className="text-small" style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>
-                    Structuring technical rubrics, loading custom resume markers, and starting the Speech engine...
-                  </p>
-                  <div className="loader-pulse" style={{ width: "32px", height: "32px", borderRadius: "50%", border: "3px solid var(--color-navy)", borderTopColor: "transparent", animation: "spin 1s linear infinite", margin: "0 auto" }} />
-                </GlassCard>
-              </motion.div>
-            )}
-
-            {phase === "SUBMITTING" && (
-              <motion.div
-                key="submitting"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-              >
-                <GlassCard style={{ padding: "40px", textAlign: "center" }}>
-                  <div className="ai-avatar-container">
-                    <div className="ai-avatar-circle" style={{ background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)" }}>
-                      <div className="ai-avatar-glow" style={{ backgroundColor: "rgba(139, 92, 246, 0.2)" }} />
-                      <Radio size={48} style={{ color: "#fff", zIndex: 10 }} />
-                    </div>
-                    <div className="voice-wave">
-                      <div className="voice-bar" style={{ animationDuration: "0.4s" }} />
-                      <div className="voice-bar" style={{ animationDuration: "0.4s" }} />
-                      <div className="voice-bar" style={{ animationDuration: "0.4s" }} />
-                      <div className="voice-bar" style={{ animationDuration: "0.4s" }} />
-                      <div className="voice-bar" style={{ animationDuration: "0.4s" }} />
-                    </div>
-                  </div>
-                  <h2 style={{ color: "var(--color-dark-blue)", fontSize: "1.45rem", margin: "16px 0 8px 0" }}>Analyzing your answer...</h2>
-                  <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", margin: 0 }}>
-                    AI is parsing semantic matches, vocabulary coverage, and confidence levels.
-                  </p>
-                </GlassCard>
-              </motion.div>
-            )}
-
-            {phase === "QUESTION" && (
-              <motion.div
-                key="question"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.4 }}
-                style={{ display: "flex", flexDirection: "column", gap: "20px" }}
-              >
-                <GlassCard className="round-info" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3 style={{ margin: 0, fontSize: "1.1rem", color: "var(--color-dark-blue)" }}>
-                    Round {roundNumber}: {roundName}
-                  </h3>
-                  <GlassBadge status="secondary">{currentDifficulty}</GlassBadge>
-                </GlassCard>
-
-                {/* Question Box */}
-                <GlassCard className="question-box">
-                  <h3 style={{ fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px", color: "var(--text-secondary)", margin: 0 }}>
-                    <HelpCircle size={14} /> Question Text
-                  </h3>
-                  <p className="question-text" style={{ fontSize: "1.25rem", color: "var(--color-navy)", lineHeight: "1.55", margin: "8px 0 0 0", fontWeight: "600" }}>
-                    {currentQuestion}
-                  </p>
-                </GlassCard>
-
-                {/* TIMER BOX */}
-                <GlassCard style={{ padding: "24px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <h3 style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0 }}>
-                        {isCandidateSpeaking ? "🔊 Countdown Paused (Speaking)" : "⏱ Answering Countdown"}
-                      </h3>
-                      <p className="text-small" style={{ color: "var(--text-muted)", margin: "4px 0 0 0" }}>
-                        {isCandidateSpeaking ? "Continue sharing your answer..." : "Adaptive timer is active"}
-                      </p>
-                    </div>
-                    <p className={`timer-count ${timeLeft <= 10 ? "time-warning" : ""}`} style={{ fontSize: "2.4rem", fontWeight: "800", margin: 0, color: timeLeft <= 10 ? "#ef4444" : "var(--color-navy)", fontFamily: "var(--font-display)" }}>
-                      {timeLeft}s
-                    </p>
-                  </div>
-                </GlassCard>
-
-                {/* TRANSCRIPTION CONTAINER */}
-                <GlassCard className="transcription-box">
-                  <h3 style={{ fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px", color: "var(--text-secondary)", margin: 0 }}>
-                    <MessageSquareCode size={14} /> Live Transcription
-                  </h3>
-                  <div className="transcription-text-wrapper" ref={scrollContainerRef}>
-                    <p className="transcription-text" style={{ fontSize: "1.05rem", lineHeight: "1.65", margin: 0, color: currentAnswer ? "var(--color-navy)" : "var(--text-muted)", fontStyle: currentAnswer ? "normal" : "italic" }}>
-                      {currentAnswer ? (
-                        <>
-                          <span className="recording-dot" />
-                          {currentAnswer}
-                        </>
-                      ) : (
-                        <span className="placeholder pulsing">
-                          <span className="recording-dot" />
-                          Listening... Start speaking to transcribe response
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", borderTop: "1px solid var(--glass-border)", paddingTop: "12px" }}>
-                    <GlassBadge status={isCandidateSpeaking ? "success" : "secondary"}>
-                      {transcriptionStatus}
-                    </GlassBadge>
-                    
-                    {hasSpoken && silenceTimeLeft < 10 && (
-                      <div style={{ color: "#ef4444", fontSize: "0.85rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }} className="pulse">
-                        <AlertTriangle size={14} /> Silent. Submitting in {silenceTimeLeft}s
-                      </div>
-                    )}
-                  </div>
-                </GlassCard>
-
-                {/* Controls */}
-                <div className="interview-controls" style={{ display: "flex", gap: "12px" }}>
-                  <GlassButton primary disabled={isSubmitting} onClick={submitAnswerAndAdvance} style={{ flex: 1, justifyContent: "center" }}>
-                    <CheckCircle size={16} /> Submit Answer
-                  </GlassButton>
-                  <GlassButton disabled={isSubmitting} onClick={() => {
-                    setCurrentAnswer("Question skipped by candidate.");
-                    answerTextRef.current = "Question skipped by candidate.";
-                    submitAnswerAndAdvance();
-                  }} style={{ flex: 1, justifyContent: "center" }}>
-                    <RotateCcw size={16} /> Skip Round
-                  </GlassButton>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+              </GlassCard>
 
-        {/* RIGHT PANEL - LIVE PROCTORING */}
-        <div className="live-right">
-          
-          {/* CAMERA FEED (Phase 2 & 10 Upgrade) */}
-          <GlassCard style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <h3 style={{ fontSize: "1rem", display: "flex", alignItems: "center", gap: "8px", margin: 0, color: "var(--color-dark-blue)" }}>
-              <Video size={18} className="text-secondary" /> Video Monitoring Stream
-            </h3>
-            
-            <div className="camera-box">
-              <div className="camera-overlay-vignette" />
-              <div className="camera-centering-guide" />
-              <CameraMonitor sessionId={sessionId} onViolation={handleViolation} onProctorUpdate={handleProctorUpdate} />
-              
-              {/* Floating badges on camera feed */}
-              <div style={{ position: "absolute", top: "12px", left: "12px", display: "flex", gap: "6px", zIndex: 20 }}>
-                <span className="camera-feed-badge green">
-                  <span className="recording-dot" style={{ margin: 0, width: 6, height: 6 }} /> CAM ACTIVE
-                </span>
-                <span className={`camera-feed-badge ${isListening ? "green" : "gray"}`}>
-                  MIC {isListening ? "ON" : "OFF"}
-                </span>
-              </div>
-              
-              <div style={{ position: "absolute", top: "12px", right: "12px", display: "flex", gap: "6px", zIndex: 20 }}>
-                <span className="camera-feed-badge blue">
-                  QUAL: EXCELLENT
-                </span>
-                <span className="camera-feed-badge blue">
-                  CALIBRATED
-                </span>
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* REAL-TIME INTEGRITY DASHBOARD (Phase 11 Dashboard) */}
-          <GlassCard>
-            <h3 style={{ fontSize: "1rem", display: "flex", alignItems: "center", gap: "8px", margin: 0, color: "var(--color-dark-blue)", marginBottom: "16px" }}>
-              <Shield size={18} className="text-secondary" style={{ color: "var(--color-medium-blue)" }} /> Integrity Dashboard
-            </h3>
-
-            <div className="integrity-dashboard" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Engine State Indicator */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(0,0,42,0.03)", borderRadius: "12px", border: "1px solid var(--glass-border)" }}>
-                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "var(--text-secondary)" }}>Engine State:</span>
-                <GlassBadge 
-                  status={
-                    proctorState === "RUNNING" || proctorState === "TRACKING" ? "success" :
-                    proctorState === "WARNING" || proctorState === "RECOVERING" ? "warning" :
-                    proctorState === "PAUSED" || proctorState === "TERMINATED" ? "danger" : "secondary"
-                  }
-                >
-                  {proctorState}
-                </GlassBadge>
-              </div>
-
-              {/* Confidence Progress Bars (Phase 6 Dependency Rules) */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "600", color: "var(--text-secondary)" }}>
-                    <span>Face Confidence</span>
-                    <span>{faceStatus === "Connected" ? Math.round(faceConfidence * 100) : 0}%</span>
+              {/* Transcription Area */}
+              <GlassCard className="workspace-card transcript-card" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "180px" }}>
+                <div className="transcript-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <MessageSquareCode size={16} className="text-secondary" />
+                    <span>Live Speech Transcription</span>
                   </div>
-                  <GlassProgress value={faceStatus === "Connected" ? faceConfidence * 100 : 0} />
-                </div>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "600", color: "var(--text-secondary)" }}>
-                    <span>Tracking Confidence</span>
-                    <span>{faceStatus === "Connected" ? Math.round(trackingConfidence * 100) : 0}%</span>
-                  </div>
-                  <GlassProgress value={faceStatus === "Connected" ? trackingConfidence * 100 : 0} />
-                </div>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "600", color: "var(--text-secondary)" }}>
-                    <span>Landmark Confidence</span>
-                    <span>{faceStatus === "Connected" ? Math.round(landmarkConfidence * 100) : 0}%</span>
-                  </div>
-                  <GlassProgress value={faceStatus === "Connected" ? landmarkConfidence * 100 : 0} />
-                </div>
-              </div>
-
-              {/* Angle Metrics Grid (Phase 6 Dependency Rules) */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", margin: "4px 0" }}>
-                <div style={{ background: "rgba(255,255,255,0.4)", border: "1px solid var(--glass-border)", padding: "8px", borderRadius: "10px", textAlign: "center" }}>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: "700" }}>YAW</div>
-                  <div style={{ fontSize: "0.9rem", fontWeight: "800", color: "var(--color-navy)" }}>
-                    {faceStatus === "Connected" ? `${yaw}°` : "N/A"}
-                  </div>
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.4)", border: "1px solid var(--glass-border)", padding: "8px", borderRadius: "10px", textAlign: "center" }}>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: "700" }}>PITCH</div>
-                  <div style={{ fontSize: "0.9rem", fontWeight: "800", color: "var(--color-navy)" }}>
-                    {faceStatus === "Connected" ? `${pitch}°` : "N/A"}
-                  </div>
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.4)", border: "1px solid var(--glass-border)", padding: "8px", borderRadius: "10px", textAlign: "center" }}>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: "700" }}>ROLL</div>
-                  <div style={{ fontSize: "0.9rem", fontWeight: "800", color: "var(--color-navy)" }}>
-                    {faceStatus === "Connected" ? `${roll}°` : "N/A"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Badges List */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text-secondary)" }}>
-                    🖥 Fullscreen Mode
-                  </span>
-                  <GlassBadge status={isFullscreenActive ? "success" : "danger"}>
-                    {isFullscreenActive ? "Secure" : "Exited"}
+                  <GlassBadge status={isCandidateSpeaking ? "success" : "secondary"}>
+                    {transcriptionStatus}
                   </GlassBadge>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text-secondary)" }}>
-                    🔍 Eye Gaze Tracking
-                  </span>
-                  <GlassBadge 
-                    status={
-                      faceStatus === "Connected" 
-                        ? (lookAway ? "warning" : "success") 
-                        : "danger"
-                    }
+
+                <div className="workspace-transcript-scroll" style={{ flex: 1, overflowY: "auto", marginTop: "12px", background: "rgba(255, 255, 255, 0.25)", padding: "12px", borderRadius: "12px" }}>
+                  <p className="transcript-content" style={{ margin: 0, fontSize: "0.95rem", lineHeight: "1.5" }}>
+                    {currentAnswer ? (
+                      <>
+                        <span className="recording-dot-active" />
+                        {currentAnswer}
+                      </>
+                    ) : (
+                      <span className="transcript-placeholder" style={{ color: "var(--text-muted)", fontStyle: "italic" }}>
+                        {isListening ? "Listening... Speak to answer." : "Microphone connecting..."}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {hasSpoken && silenceTimeLeft < 10 && (
+                  <div className="silence-warning-banner pulse" style={{ marginTop: "10px", background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.3)", padding: "8px", borderRadius: "8px", fontSize: "0.85rem", color: "#d97706", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <AlertTriangle size={14} /> Switched to silent. Submitting response in {silenceTimeLeft}s
+                  </div>
+                )}
+              </GlassCard>
+
+              {/* Action Buttons */}
+              <div className="workspace-actions-row" style={{ display: "flex", gap: "12px" }}>
+                <GlassButton primary disabled={isSubmitting} onClick={() => setInterviewState("PROCESSING")} style={{ flex: 1, justifyContent: "center" }}>
+                  <CheckCircle size={18} style={{ marginRight: "8px" }} /> Submit Answer
+                </GlassButton>
+                <GlassButton disabled={isSubmitting} onClick={() => {
+                  setCurrentAnswer("Question skipped by candidate.");
+                  setInterviewState("PROCESSING");
+                }} style={{ flex: 1, justifyContent: "center" }}>
+                  <RotateCcw size={18} style={{ marginRight: "8px" }} /> Skip Question
+                </GlassButton>
+              </div>
+
+            </div>
+
+            {/* Right Panel */}
+            <div className="workspace-right-panel" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              
+              {/* Camera Preview */}
+              <GlassCard className="workspace-card camera-card" style={{ padding: 0, overflow: "hidden" }}>
+                <div className="workspace-camera-container" style={{ position: "relative", width: "100%", height: "240px", background: "#000" }}>
+                  <div className="camera-overlay-vignette" />
+                  <CameraMonitor 
+                    sessionId={sessionId} 
+                    enableProctoring={["QUESTION", "LISTENING", "PROCESSING"].includes(interviewState) && !isPaused} 
+                    onViolation={handleViolation} 
+                    onProctorUpdate={handleProctorUpdate} 
+                  />
+                  
+                  <div className="camera-dynamic-guidance" style={{ position: "absolute", bottom: "10px", left: "10px", right: "10px", textAlign: "center", zIndex: 10 }}>
+                    {cameraStatus === "ERROR" ? (
+                      <span className="guidance-text error" style={{ background: "#ef4444", color: "#fff", padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold" }}>⚠️ CAMERA ACCESS LOST</span>
+                    ) : faceMissing ? (
+                      <span className="guidance-text error" style={{ background: "#ef4444", color: "#fff", padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold" }}>👤 NO FACE DETECTED</span>
+                    ) : multipleFaces ? (
+                      <span className="guidance-text error" style={{ background: "#ef4444", color: "#fff", padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold" }}>👥 MULTIPLE PEOPLE</span>
+                    ) : (
+                      <span className="guidance-text success" style={{ background: "#10b981", color: "#fff", padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold" }}>✓ CANDIDATE MONITOR ACTIVE</span>
+                    )}
+                  </div>
+                </div>
+              </GlassCard>
+
+              {/* Integrity status list */}
+              <GlassCard className="workspace-card integrity-card">
+                <div className="integrity-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Shield size={16} className="text-secondary" />
+                    <span style={{ fontWeight: 600 }}>Proctoring Integrity Monitor</span>
+                  </div>
+                  {import.meta.env.DEV && (
+                    <button className="details-toggle-btn" onClick={() => setShowDevMode(!showDevMode)} style={{ background: "transparent", border: "none", color: "#3b82f6", cursor: "pointer", textDecoration: "underline", fontSize: "0.85rem" }}>
+                      {showDevMode ? "Hide Details" : "Show Details"}
+                    </button>
+                  )}
+                </div>
+
+                <ul className="integrity-status-list" style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <li style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.9rem" }}>
+                    <span className={`status-dot ${!faceMissing ? "green" : "red"}`} style={{ width: "8px", height: "8px", borderRadius: "50%", background: !faceMissing ? "#10b981" : "#ef4444" }} />
+                    <span>Candidate Visible</span>
+                  </li>
+                  <li style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.9rem" }}>
+                    <span className={`status-dot ${!multipleFaces ? "green" : "red"}`} style={{ width: "8px", height: "8px", borderRadius: "50%", background: !multipleFaces ? "#10b981" : "#ef4444" }} />
+                    <span>Single Face Frame</span>
+                  </li>
+                  <li style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.9rem" }}>
+                    <span className={`status-dot ${isFullscreenActive ? "green" : "red"}`} style={{ width: "8px", height: "8px", borderRadius: "50%", background: isFullscreenActive ? "#10b981" : "#ef4444" }} />
+                    <span>Secure Fullscreen</span>
+                  </li>
+                  <li style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.9rem" }}>
+                    <span className={`status-dot ${tabStatus === "Connected" ? "green" : "red"}`} style={{ width: "8px", height: "8px", borderRadius: "50%", background: tabStatus === "Connected" ? "#10b981" : "#ef4444" }} />
+                    <span>Window Focused</span>
+                  </li>
+                </ul>
+              </GlassCard>
+
+              {/* Dev Diagnostics Draw */}
+              <AnimatePresence>
+                {showDevMode && import.meta.env.DEV && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ overflow: "hidden" }}
                   >
-                    {faceStatus === "Connected" 
-                      ? (lookAway ? "Looking Away" : "Focused") 
-                      : "No Face Detected"}
-                  </GlassBadge>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text-secondary)" }}>
-                    📷 Camera Health
-                  </span>
-                  <GlassBadge status={cameraStatus === "GRANTED" ? "success" : "danger"}>
-                    {cameraStatus === "GRANTED" ? "Healthy" : "Error"}
-                  </GlassBadge>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text-secondary)" }}>
-                    🎤 Microphone Health
-                  </span>
-                  <GlassBadge status={micStatus === "GRANTED" ? "success" : "danger"}>
-                    {micStatus === "GRANTED" ? "Healthy" : "Error"}
-                  </GlassBadge>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text-secondary)" }}>
-                    💡 Lighting Status
-                  </span>
-                  <GlassBadge status={lightingStatus === "Connected" ? "success" : "warning"}>
-                    {lightingStatus === "Connected" ? "Good" : "Suboptimal"}
-                  </GlassBadge>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text-secondary)" }}>
-                    🗂 Focus Shield
-                  </span>
-                  <GlassBadge status={tabStatus === "Connected" ? "success" : "danger"}>
-                    {tabStatus === "Connected" ? "Secure" : "Violation"}
-                  </GlassBadge>
-                </div>
-              </div>
+                    <GlassCard className="dev-diagnostics-card" style={{ fontSize: "0.8rem", display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <h3>🛠 Dev Telemetry Panel</h3>
+                      <div>Session ID: <strong>{sessionId}</strong></div>
+                      <div>Interview State: <strong>{interviewState}</strong></div>
+                      <div>Camera: <strong>{cameraStatus}</strong></div>
+                      <div>Mic: <strong>{micStatus}</strong></div>
+                      <div>Warning count: <strong>{warningCount}/5</strong></div>
+                    </GlassCard>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* Timestamp Footer */}
-              <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid var(--glass-border)", paddingTop: "10px", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                <span>Last Detection:</span>
-                <span>{lastDetectionTime}</span>
-              </div>
             </div>
-          </GlassCard>
 
-          {/* DEVELOPER DIAGNOSTICS PANEL (Phase 9 Panel) */}
-          <GlassCard style={{ marginTop: "16px" }}>
-            <h3 style={{ fontSize: "1rem", display: "flex", alignItems: "center", gap: "8px", margin: 0, color: "var(--color-dark-blue)", marginBottom: "16px" }}>
-              🛠 Developer Diagnostics
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.85rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-secondary)" }}>Last Transition:</span>
-                <span style={{ fontWeight: "700", fontFamily: "monospace" }}>{lastTransition}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-secondary)" }}>Calibration Timer:</span>
-                <span style={{ fontWeight: "700" }}>{Math.round(calibrationTime * 10) / 10}s / 3.0s</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-secondary)" }}>Integrity Score:</span>
-                <span style={{ fontWeight: "700", color: integrityScore >= 80 ? "#10b981" : (integrityScore >= 50 ? "#f59e0b" : "#ef4444") }}>{integrityScore}%</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-secondary)" }}>Blocker Reason:</span>
-                <span style={{ fontWeight: "600", color: "#ef4444", fontSize: "0.8rem", maxWidth: "180px", textAlign: "right" }}>{activeBlockerReason}</span>
-              </div>
-              <div style={{ borderTop: "1px dashed var(--glass-border)", paddingTop: "8px" }}>
-                <div style={{ fontWeight: "700", marginBottom: "6px", color: "var(--text-secondary)", fontSize: "0.8rem" }}>State Transition Logs:</div>
-                <div style={{ maxHeight: "80px", overflowY: "auto", fontFamily: "monospace", fontSize: "0.75rem", display: "flex", flexDirection: "column", gap: "4px", background: "rgba(0,0,0,0.03)", padding: "8px", borderRadius: "8px" }}>
-                  {proctorLogs.slice(0, 30).map((log, idx) => (
-                    <div key={idx} style={{ color: log.includes("PAUSED") || log.includes("TERMINATED") ? "#ef4444" : "var(--text-primary)" }}>{log}</div>
-                  ))}
-                </div>
-              </div>
+          </div>
+
+          {/* FOOTER */}
+          <footer className="workspace-footer" style={{ background: "rgba(255,255,255,0.4)", borderTop: "1px solid var(--glass-border)", padding: "10px 24px", display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+            <div className="footer-left" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span className="recording-dot-active pulse" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#ef4444", display: "inline-block" }} />
+              <span>SECURE ASSESSMENT MODE ON</span>
             </div>
-          </GlassCard>
-        </div>
-      </motion.div>
+            <div className="footer-center">
+              <span>Do not switch tabs, exit fullscreen, or leave the camera view.</span>
+            </div>
+            <div className="footer-right">
+              <span>Connection: {isOnline ? "Online" : "Offline"}</span>
+            </div>
+          </footer>
+
+        </motion.div>
+      )}
     </div>
   );
 }

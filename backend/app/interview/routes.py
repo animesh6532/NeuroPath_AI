@@ -104,8 +104,8 @@ def classify_question_metadata(question_text: str, category: str, is_follow_up: 
             "question_type": "system_design",
             "expected_duration": 90
         }
-    # Check if category is technical/scenario/projects
-    elif cat_lower in ["technical", "scenario", "projects"]:
+    # Check if category is technical/scenario/projects/coding
+    elif cat_lower in ["technical", "scenario", "projects", "coding"]:
         coding_triggers = ["code", "program", "function", "coding", "algorithm", "syntax", "develop a", "implement a"]
         if any(trigger in text_lower for trigger in coding_triggers):
             return {
@@ -296,6 +296,7 @@ async def start_stateful_interview(payload: dict = Body(...), db: Session = Depe
             history=json.dumps(initial_history),
             violations=json.dumps([]),
             is_completed=0,
+            session_status="CREATED",
             created_at=datetime.utcnow().isoformat()
         )
         db.add(session)
@@ -342,6 +343,99 @@ async def start_stateful_interview(payload: dict = Body(...), db: Session = Depe
         print(f"[AI Stateful Interview Error] Exception trace: {json.dumps(err_log, indent=2)}", file=sys.stderr)
         raise HTTPException(status_code=500, detail=err_log)
 
+@router.get("/validate/{session_id}")
+async def validate_interview_session(session_id: str, db: Session = Depends(get_db)):
+    """
+    Validates an active interview session from the backend database.
+    """
+    session = db.query(InterviewSession).filter(InterviewSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Interview session not found.")
+    
+    # Check expiration (sessions older than 4 hours are EXPIRED)
+    try:
+        created_time = datetime.fromisoformat(session.created_at)
+        elapsed_hours = (datetime.utcnow() - created_time).total_seconds() / 3600.0
+        if elapsed_hours >= 4.0 and session.session_status not in ["COMPLETED", "TERMINATED"]:
+            session.session_status = "EXPIRED"
+            db.commit()
+    except Exception:
+        pass
+
+    try:
+        blueprint_list = json.loads(session.blueprint)
+    except:
+        blueprint_list = []
+
+    try:
+        history_list = json.loads(session.history)
+    except:
+        history_list = []
+
+    return {
+        "success": True,
+        "message": "Session validated",
+        "data": {
+            "session_id": session.id,
+            "email": session.email,
+            "role": session.role,
+            "level": session.level,
+            "blueprint": blueprint_list,
+            "current_round_index": session.current_round_index,
+            "current_difficulty": session.current_difficulty,
+            "is_completed": session.is_completed,
+            "session_status": session.session_status or "CREATED",
+            "history": history_list,
+            "violations": json.loads(session.violations) if session.violations else []
+        }
+    }
+
+@router.post("/state")
+async def update_interview_session_state(payload: dict = Body(...), db: Session = Depends(get_db)):
+    """
+    Updates session state machine transitions.
+    """
+    session_id = payload.get("session_id")
+    target_status = payload.get("status")
+
+    session = db.query(InterviewSession).filter(InterviewSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Interview session not found.")
+
+    current_status = session.session_status or "CREATED"
+
+    # Define valid transitions
+    VALID_TRANSITIONS = {
+        "CREATED": ["READY", "ACTIVE", "TERMINATED"],
+        "READY": ["ACTIVE", "TERMINATED"],
+        "ACTIVE": ["PAUSED", "COMPLETED", "TERMINATED"],
+        "PAUSED": ["ACTIVE", "TERMINATED"],
+        "COMPLETED": [],
+        "TERMINATED": [],
+        "EXPIRED": []
+    }
+
+    allowed = VALID_TRANSITIONS.get(current_status, [])
+    if target_status not in allowed and target_status != current_status:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid session status transition from {current_status} to {target_status}."
+        )
+
+    session.session_status = target_status
+    if target_status in ["COMPLETED", "TERMINATED"]:
+        session.is_completed = 1
+
+    db.commit()
+    return {
+        "success": True,
+        "message": "Session state updated",
+        "data": {
+            "session_id": session_id,
+            "session_status": target_status
+        }
+    }
+
 @router.post("/answer")
 async def submit_candidate_answer(payload: dict = Body(...), db: Session = Depends(get_db)):
     """
@@ -376,6 +470,7 @@ async def submit_candidate_answer(payload: dict = Body(...), db: Session = Depen
         if len(session_violations) >= max_violations:
             # Terminate due to excessive violations
             session.is_completed = 1
+            session.session_status = "TERMINATED"
             db.commit()
             return {
                 "is_completed": True,
@@ -476,6 +571,7 @@ async def submit_candidate_answer(payload: dict = Body(...), db: Session = Depen
         if session.current_round_index >= len(blueprint):
             # Interview completed! Generate report
             session.is_completed = 1
+            session.session_status = "COMPLETED"
             db.commit()
             
             # Generate and seed report details

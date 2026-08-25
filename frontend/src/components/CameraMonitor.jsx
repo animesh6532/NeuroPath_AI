@@ -1,31 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { interviewAPI } from "../api/endpoints";
 
-function CameraMonitor({ sessionId, onViolation, onProctorUpdate }) {
+function CameraMonitor({ sessionId, enableProctoring = false, onViolation, onProctorUpdate }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const violationTriggeredRef = useRef(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
+  // 1. Initialize Webcam Stream
   useEffect(() => {
     let isMounted = true;
-    let intervalId = null;
 
-    const startCameraAndLoop = async () => {
-      // 1. Fetch dynamic proctoring configurations (default to 500ms / 2 FPS)
-      let frameRateMs = 500;
-      try {
-        const configRes = await interviewAPI.getProctorConfig();
-        if (configRes.data && configRes.data.frame_rate_ms) {
-          frameRateMs = configRes.data.frame_rate_ms;
-        }
-      } catch (err) {
-        console.warn("Failed fetching proctoring config, using default 500ms frame rate:", err);
-      }
-
-      if (!isMounted) return;
-
-      // 2. Request camera permissions and start stream
+    const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -36,7 +23,11 @@ function CameraMonitor({ sessionId, onViolation, onProctorUpdate }) {
           audio: false,
         });
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
         streamRef.current = stream;
 
         // Monitor physical hardware disconnects
@@ -53,11 +44,7 @@ function CameraMonitor({ sessionId, onViolation, onProctorUpdate }) {
           await videoRef.current.play();
         }
 
-        // 3. Start continuous frame capturing at the configured rate
-        intervalId = setInterval(() => {
-          captureAndSendFrame(sessionId);
-        }, frameRateMs);
-
+        setCameraReady(true);
       } catch (err) {
         console.error("Camera access denied:", err);
         if (onProctorUpdate) {
@@ -70,16 +57,54 @@ function CameraMonitor({ sessionId, onViolation, onProctorUpdate }) {
       }
     };
 
-    startCameraAndLoop();
+    startCamera();
 
     return () => {
       isMounted = false;
-      if (intervalId) clearInterval(intervalId);
+      setCameraReady(false);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       }
     };
-  }, [sessionId]);
+  }, []);
+
+  // 2. Active Proctoring Analysis Loop
+  useEffect(() => {
+    if (!enableProctoring || !cameraReady || !sessionId) {
+      return;
+    }
+
+    let intervalId = null;
+    let isMounted = true;
+
+    const startLoop = async () => {
+      let frameRateMs = 500; // Default to 500ms (2 FPS)
+      try {
+        const configRes = await interviewAPI.getProctorConfig();
+        if (configRes.data && configRes.data.frame_rate_ms) {
+          frameRateMs = configRes.data.frame_rate_ms;
+        }
+      } catch (err) {
+        console.warn("Failed fetching proctoring config, using default 500ms frame rate:", err);
+      }
+
+      if (!isMounted) return;
+
+      intervalId = setInterval(() => {
+        captureAndSendFrame(sessionId);
+      }, frameRateMs);
+    };
+
+    startLoop();
+
+    return () => {
+      isMounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [enableProctoring, cameraReady, sessionId]);
 
   const captureAndSendFrame = async (currSessionId) => {
     try {

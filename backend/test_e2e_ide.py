@@ -2,7 +2,7 @@ import urllib.request
 import urllib.parse
 import json
 
-BASE_URL = "http://127.0.0.1:8001"
+BASE_URL = "http://127.0.0.1:8000"
 
 def api_post(endpoint, data, headers=None):
     headers = headers or {}

@@ -77,6 +77,7 @@ class InterviewSession(Base):
     history = Column(String, default="[]") # JSON list of asked questions, answers, and scores
     violations = Column(String, default="[]") # JSON list of proctoring violations
     is_completed = Column(Integer, default=0) # 0 for False, 1 for True
+    session_status = Column(String, default="CREATED") # CREATED, READY, ACTIVE, COMPLETED, TERMINATED, EXPIRED
     created_at = Column(String) # Date string
 
 class InterviewReport(Base):

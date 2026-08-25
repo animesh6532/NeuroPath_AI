@@ -817,6 +817,39 @@ def generate_personalized_question(
             "estimated_time": 90
         }
 
+    # E2. Coding Concepts Round
+    elif category == "Coding":
+        focus_lang = profile["programming_languages"][0] if profile["programming_languages"] else "languages"
+        q_text = f"Detail the runtime complexity (Big O) of sorting algorithms like quicksort and merge sort. Under what scenarios is a hash map preferred over a binary tree for lookup performance in {focus_lang}?"
+        return {
+            "id": generate_unique_id(11500),
+            "question_text": q_text,
+            "topic": "Coding",
+            "sub_topic": "Data Structures & Algorithms",
+            "difficulty": difficulty,
+            "expected_answer": "Candidate should contrast average/worst Big O of quicksort vs merge sort, and describe O(1) hash map lookup vs O(log N) sorted tree constraints.",
+            "rubric": json.dumps(["Differentiates sorting runtimes (quicksort vs merge sort)", "Contrasts hash map O(1) vs binary tree O(log N)", "Details language-specific memory layouts"]),
+            "follow_ups": json.dumps(["What positional optimizations does this language make?"]),
+            "concept_tags": json.dumps(["coding", "algorithms", "big_o"]),
+            "estimated_time": 90
+        }
+
+    # E3. HR / Alignment Round
+    elif category == "HR":
+        q_text = f"Where do you see yourself in 5 years, and how do your career targets align with the role of {profile['target_role']}? What specific technical skills do you plan to master next?"
+        return {
+            "id": generate_unique_id(11800),
+            "question_text": q_text,
+            "topic": "HR",
+            "sub_topic": "Career Alignment",
+            "difficulty": difficulty,
+            "expected_answer": "Express clear technical path targets, alignment with target role, and concrete plans for skill expansion (e.g., system design, cloud, specialized ML frameworks).",
+            "rubric": json.dumps(["Articulates long-term career progression path", "Demonstrates alignment with target position", "Identifies specific technologies/skills to learn"]),
+            "follow_ups": json.dumps(["How do you keep up with industry trends?"]),
+            "concept_tags": json.dumps(["hr", "alignment", "career"]),
+            "estimated_time": 60
+        }
+
     # F. Closing Round
     elif category == "Closing":
         focus_lang = profile["programming_languages"][0] if profile["programming_languages"] else "software systems"
